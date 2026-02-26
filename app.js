@@ -1,6 +1,6 @@
 /**
  * APPLICATION : Caisse Dolus
- * MISSION : Production-grade, modularité, et archivage TVA détaillée
+ * MISSION : Production-grade, modularité, et archivage avec récapitulatif dynamique
  */
 
 const app = {
@@ -40,7 +40,7 @@ const app = {
         `).join('');
     },
 
-    // --- LOGIQUE DES LISTES (N'oubliez pas de cliquer sur Ajouter) ---
+    // --- LOGIQUE DES LISTES ---
     addAncv() {
         const val = parseFloat(document.getElementById('ancv-val').value);
         const qty = parseInt(document.getElementById('ancv-qty').value) || 0;
@@ -91,7 +91,7 @@ const app = {
 
     renderRecaps() {
         document.getElementById('mypos-recap').innerHTML = this.state.mypos.map((amt, idx) => `
-            <div class="recap-item"><span>Vente MyPOS #${idx+1}</span><strong>${amt.toFixed(2)}€</strong><button onclick="app.removeMyPos(${idx})">❌</button></div>
+            <div class="recap-item"><span>MyPOS #${idx+1}</span><strong>${amt.toFixed(2)}€</strong><button onclick="app.removeMyPos(${idx})">❌</button></div>
         `).join('');
         document.getElementById('ancv-recap').innerHTML = this.state.ancv.map((item, idx) => `
             <div class="recap-item"><span>${item.type==='paper'?'📄':'📱'} ${item.qty}x${item.val}€</span><strong>${(item.val*item.qty).toFixed(2)}€</strong><button onclick="app.removeAncv(${idx})">❌</button></div>
@@ -106,7 +106,6 @@ const app = {
         const v = id => parseFloat(document.getElementById(id).textContent) || 0;
         const getIn = id => parseFloat(document.getElementById(id).value) || 0;
 
-        // On inclut bien MyPOS dans le total physique
         const totalPhysique = v('total-cb') + v('total-tr') + v('total-mypos') + v('total-amex') + 
                              v('total-cash-net') + v('total-ancv-paper') + v('total-ancv-connect') + v('total-checks');
         
@@ -115,27 +114,40 @@ const app = {
         const tva10 = getIn('tva-10');
         const tva20 = getIn('tva-20');
         const tvaTotal = tva5 + tva10 + tva20;
-        const pizzas = getIn('pos-pizzas');
 
         this.currentData = {
             cb: v('total-cb'), tr: v('total-tr'), mypos: v('total-mypos'), amex: v('total-amex'),
             cashNet: v('total-cash-net'), ancvP: v('total-ancv-paper'), ancvC: v('total-ancv-connect'),
             checks: v('total-checks'), totalReal: totalPhysique, posCash: posCash,
-            deltaCash: v('total-cash-net') - posCash, pizzas: pizzas,
+            deltaCash: v('total-cash-net') - posCash, pizzas: getIn('pos-pizzas'),
             tva5: tva5, tva10: tva10, tva20: tva20
         };
 
-        // Affichage détaillé dans le récapitulatif
+        // --- GÉNÉRATION DU HTML DYNAMIQUE (Uniquement si > 0) ---
+        let linesHtml = "";
+        const lines = [
+            { label: "CB Classique", val: v('total-cb') },
+            { label: "Titres Resto", val: v('total-tr') },
+            { label: "MyPOS", val: v('total-mypos') },
+            { label: "AMEX", val: v('total-amex') },
+            { label: "Espèces", val: v('total-cash-net') },
+            { label: "ANCV Papier", val: v('total-ancv-paper') },
+            { label: "ANCV Connect", val: v('total-ancv-connect') },
+            { label: "Chèques", val: v('total-checks') }
+        ];
+
+        lines.forEach(line => {
+            if (line.val > 0) {
+                linesHtml += `<div class="recap-row"><span>${line.label} :</span><span>${line.val.toFixed(2)} €</span></div>`;
+            }
+        });
+
         let html = `
             <div style="border-bottom:1px solid #ddd; margin-bottom:10px; padding-bottom:10px; font-size:0.9rem;">
-                <div class="recap-row"><span>CB Classique :</span><span>${v('total-cb').toFixed(2)} €</span></div>
-                <div class="recap-row"><span>MyPOS :</span><span>${v('total-mypos').toFixed(2)} €</span></div>
-                <div class="recap-row"><span>Espèces :</span><span>${v('total-cash-net').toFixed(2)} €</span></div>
-                <div class="recap-row"><span>ANCV :</span><span>${(v('total-ancv-paper')+v('total-ancv-connect')).toFixed(2)} €</span></div>
-                <div class="recap-row"><span>Chèques :</span><span>${v('total-checks').toFixed(2)} €</span></div>
+                ${linesHtml || '<div style="text-align:center; color:#999;">Aucun encaissement saisi</div>'}
             </div>
             <div class="recap-row" style="font-weight:bold; color:#2c3e50;"><span>💰 TOTAL RÉEL :</span><span>${totalPhysique.toFixed(2)} €</span></div>
-            <div class="recap-row" style="font-weight:bold; color:#2c3e50;"><span>🧾 TOTAL LOGICIEL :</span><span>${tvaTotal.toFixed(2)} €</span></div>
+            <div class="recap-row" style="font-weight:bold; color:#2c3e50;"><span>🧾 TOTAL TVA :</span><span>${tvaTotal.toFixed(2)} €</span></div>
         `;
 
         const diffTVA = Math.abs(totalPhysique - tvaTotal);
@@ -144,14 +156,14 @@ const app = {
         if (!estValide) {
             html += `
                 <div style="background:#fff3cd; color:#856404; padding:10px; border-radius:8px; margin-top:10px; font-size:0.8rem; border:1px solid #ffeeba;">
-                    ⚠️ Écart de <strong>${(totalPhysique - tvaTotal).toFixed(2)}€</strong>. Vérifie tes saisies avant d'enregistrer.
+                    ⚠️ Écart de <strong>${(totalPhysique - tvaTotal).toFixed(2)}€</strong>.
                 </div>
                 <button class="btn-primary" style="width:100%; margin-top:15px; background:#ccc;" disabled>ÉCART TROP IMPORTANT</button>
             `;
         } else {
             html += `
                 <div style="background:#d4edda; color:#155724; padding:10px; border-radius:8px; margin-top:10px; font-size:0.85rem;">
-                    ✅ Équilibre parfait. Les données peuvent être archivées.
+                    ✅ Équilibre parfait.
                 </div>
                 <button id="btn-sync" class="btn-primary" style="width:100%; margin-top:15px;" onclick="app.sendToGoogleSheet()">💾 ENREGISTRER SUR GOOGLE</button>
             `;
@@ -165,9 +177,8 @@ const app = {
     sendToGoogleSheet() {
         const btn = document.getElementById('btn-sync');
         const status = document.getElementById('sync-status');
-        
         btn.disabled = true;
-        btn.textContent = "🚀 Envoi en cours...";
+        btn.textContent = "🚀 Envoi...";
 
         fetch(this.CONFIG.SCRIPT_URL, {
             method: 'POST',
@@ -175,15 +186,13 @@ const app = {
             body: JSON.stringify(this.currentData)
         })
         .then(() => {
-            status.textContent = "✅ Données transmises avec succès !";
+            status.textContent = "✅ Données transmises !";
             status.style.color = "green";
             btn.textContent = "✅ ARCHIVÉ";
             btn.style.background = "#27ae60";
-            // Optionnel : vider le stockage local après succès
-            // localStorage.removeItem('dolus_v_final'); 
         })
         .catch(() => {
-            status.textContent = "❌ Erreur lors de l'envoi";
+            status.textContent = "❌ Erreur d'envoi";
             btn.disabled = false;
             btn.textContent = "Réessayer";
         });
