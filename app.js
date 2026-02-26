@@ -22,16 +22,26 @@ const app = {
         this.renderCashGrid();
         this.loadFromStorage();
         const offsetInput = document.getElementById('cash-offset');
-        if (!offsetInput.value) offsetInput.value = this.CONFIG.DEFAULT_CASH_OFFSET;
+        if (offsetInput && !offsetInput.value) offsetInput.value = this.CONFIG.DEFAULT_CASH_OFFSET;
         
         this.bindEvents();
         this.refreshUI();
     },
 
     showView(viewId) {
+        // Cache toutes les sections avec la classe .view
         document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
+        
+        // Affiche la vue cible
         const targetView = document.getElementById(viewId);
-        if (targetView) targetView.classList.remove('hidden');
+        if (targetView) {
+            targetView.classList.remove('hidden');
+        } else {
+            // Sécurité : si l'ID n'existe pas, on affiche la première vue par défaut
+            const defaultView = document.getElementById('view-cards');
+            if (defaultView) defaultView.classList.remove('hidden');
+        }
+        
         window.scrollTo(0,0);
         this.saveToStorage();
     },
@@ -39,6 +49,8 @@ const app = {
     renderCashGrid() {
         const units = [100, 50, 20, 10, 5, 2, 1, 0.5, 0.2, 0.1];
         const container = document.getElementById('cash-container');
+        if (!container) return;
+
         container.innerHTML = units.map(u => `
             <div class="cash-item">
                 <label>${u >= 5 ? 'Billet' : 'Pièce'} ${u}€</label>
@@ -52,35 +64,51 @@ const app = {
         const val = parseFloat(document.getElementById('ancv-val').value);
         const qty = parseInt(document.getElementById('ancv-qty').value) || 0;
         const type = document.querySelector('input[name="ancv-type"]:checked').value;
-        if (qty > 0) { this.state.ancv.push({ val, qty, type }); document.getElementById('ancv-qty').value = ''; this.refreshUI(); }
+        if (qty > 0) { 
+            this.state.ancv.push({ val, qty, type }); 
+            document.getElementById('ancv-qty').value = ''; 
+            this.refreshUI(); 
+        }
     },
     removeAncv(idx) { this.state.ancv.splice(idx, 1); this.refreshUI(); },
+    resetAncvInputs() { document.getElementById('ancv-qty').value = ''; },
 
     addCheck() {
         const amt = parseFloat(document.getElementById('check-amount').value) || 0;
-        if (amt > 0) { this.state.checks.push(amt); document.getElementById('check-amount').value = ''; this.refreshUI(); }
+        if (amt > 0) { 
+            this.state.checks.push(amt); 
+            document.getElementById('check-amount').value = ''; 
+            this.refreshUI(); 
+        }
     },
     removeCheck(idx) { this.state.checks.splice(idx, 1); this.refreshUI(); },
 
     addMyPos() {
         const amt = parseFloat(document.getElementById('mypos-amount').value) || 0;
-        if (amt > 0) { this.state.mypos.push(amt); document.getElementById('mypos-amount').value = ''; this.refreshUI(); }
+        if (amt > 0) { 
+            this.state.mypos.push(amt); 
+            document.getElementById('mypos-amount').value = ''; 
+            this.refreshUI(); 
+        }
     },
     removeMyPos(idx) { this.state.mypos.splice(idx, 1); this.refreshUI(); },
 
     // --- CALCULS ET INTERFACE ---
     refreshUI() {
         const getSum = (id1, id2) => (parseFloat(document.getElementById(id1).value) || 0) + (parseFloat(document.getElementById(id2).value) || 0);
+        
+        // Totaux Cartes
         document.getElementById('total-cb').textContent = getSum('cb-contact', 'cb-sans-contact').toFixed(2);
         document.getElementById('total-tr').textContent = getSum('tr-contact', 'tr-sans-contact').toFixed(2);
         document.getElementById('total-amex').textContent = getSum('amex-contact', 'amex-sans-contact').toFixed(2);
 
+        // Espèces
         let brut = 0;
         let hasInputCash = false;
         document.querySelectorAll('.cash-in').forEach(i => {
-            const val = parseInt(i.value) || 0;
-            if (val > 0) hasInputCash = true;
-            brut += (parseFloat(i.dataset.unit) * val);
+            const qty = parseInt(i.value) || 0;
+            if (qty > 0) hasInputCash = true;
+            brut += (parseFloat(i.dataset.unit) * qty);
         });
 
         const offset = parseFloat(document.getElementById('cash-offset').value) || 0;
@@ -89,6 +117,7 @@ const app = {
         document.getElementById('total-cash-brut').textContent = brut.toFixed(2);
         document.getElementById('total-cash-net').textContent = net.toFixed(2);
 
+        // Autres
         document.getElementById('total-ancv-paper').textContent = this.state.ancv.filter(i=>i.type==='paper').reduce((a,b)=>a+(b.val*b.qty),0).toFixed(2);
         document.getElementById('total-ancv-connect').textContent = this.state.ancv.filter(i=>i.type==='connect').reduce((a,b)=>a+(b.val*b.qty),0).toFixed(2);
         document.getElementById('total-checks').textContent = this.state.checks.reduce((a, b) => a + b, 0).toFixed(2);
@@ -121,21 +150,12 @@ const app = {
         const tvaTotal = getIn('tva-5') + getIn('tva-10') + getIn('tva-20');
         const deltaCash = cashCompte - posCashLogiciel;
 
-        // Préparation des données pour le Sheet (AMEX supprimé selon demande)
         this.currentData = {
-            cb: totalCB_Amex, 
-            tr: totalTR, 
-            mypos: myPosTotal,
-            cashNet: cashCompte, 
-            ancvP: v('total-ancv-paper'), 
-            ancvC: v('total-ancv-connect'),
-            checks: totalChecks, 
-            totalReal: sommePaiementsLogiciel + myPosTotal,
-            posCash: posCashLogiciel, 
-            deltaCash: deltaCash,
-            tva5: getIn('tva-5'), 
-            tva10: getIn('tva-10'), 
-            tva20: getIn('tva-20'),
+            cb: totalCB_Amex, tr: totalTR, mypos: myPosTotal,
+            cashNet: cashCompte, ancvP: v('total-ancv-paper'), ancvC: v('total-ancv-connect'),
+            checks: totalChecks, totalReal: sommePaiementsLogiciel + myPosTotal,
+            posCash: posCashLogiciel, deltaCash: deltaCash,
+            tva5: getIn('tva-5'), tva10: getIn('tva-10'), tva20: getIn('tva-20'),
             pizzas: getIn('pos-pizzas')
         };
 
@@ -145,30 +165,17 @@ const app = {
                 <div class="recap-row"><span>CB (Banque + Amex) :</span><strong>${totalCB_Amex.toFixed(2)} €</strong></div>
                 <div class="recap-row"><span>Espèces Net :</span><strong>${cashCompte.toFixed(2)} €</strong></div>
                 <div class="recap-row"><span>CB Ticket Resto :</span><strong>${totalTR.toFixed(2)} €</strong></div>
-                <div class="recap-row"><span>Total ANCV :</span><strong>${totalANCV.toFixed(2)} €</strong></div>
                 <div class="recap-row"><span>Total Chèques :</span><strong>${totalChecks.toFixed(2)} €</strong></div>
             </div>
-
             <div style="background:#fff3cd; color:#856404; padding:10px; border-radius:8px; margin-bottom:10px; font-size:0.85rem; border:1px solid #ffeeba;">
                 <div class="recap-row"><span>⚠️ Écart Espèces :</span><strong>${deltaCash.toFixed(2)} €</strong></div>
-                <div class="recap-row"><span>💳 Total MyPOS :</span><strong>${myPosTotal.toFixed(2)} €</strong></div>
             </div>
-
-            <div style="font-size:0.85rem; border-bottom:1px solid #ddd; padding-bottom:10px; margin-bottom:10px;">
-                <p style="font-weight:bold; color:#2c3e50; margin-bottom:5px; text-decoration:underline;">VENTILATION TVA (LOGICIEL)</p>
-                <div class="recap-row"><span>TVA 5.5% :</span><span>${getIn('tva-5').toFixed(2)} €</span></div>
-                <div class="recap-row"><span>TVA 10% :</span><span>${getIn('tva-10').toFixed(2)} €</span></div>
-                <div class="recap-row"><span>TVA 20% :</span><span>${getIn('tva-20').toFixed(2)} €</span></div>
-            </div>
-
-            <div class="recap-row" style="font-weight:bold; margin-top:5px;"><span>SOMME PAIEMENTS (LOGICIEL) :</span><span>${sommePaiementsLogiciel.toFixed(2)} €</span></div>
-            <div class="recap-row" style="font-weight:bold;"><span>SOMME TVA :</span><span>${tvaTotal.toFixed(2)} €</span></div>
+            <div class="recap-row" style="font-weight:bold; margin-top:5px;"><span>SOMME LOGICIEL :</span><span>${sommePaiementsLogiciel.toFixed(2)} €</span></div>
         `;
 
         const diffTVA = Math.abs(sommePaiementsLogiciel - tvaTotal);
         if (diffTVA >= 0.05) {
-            html += `<div style="background:#f8d7da; color:#721c24; padding:8px; border-radius:5px; margin-top:10px; font-size:0.8rem;">❌ Écart TVA détecté.</div>
-                     <button class="btn-primary" style="width:100%; margin-top:10px; background:#ccc;" disabled>CORRIGER POUR VALIDER</button>`;
+            html += `<div style="background:#f8d7da; color:#721c24; padding:8px; border-radius:5px; margin-top:10px; font-size:0.8rem;">❌ Écart TVA détecté.</div>`;
         } else {
             html += `<button id="btn-sync" class="btn-primary" style="width:100%; margin-top:15px;" onclick="app.sendToGoogleSheet()">💾 VALIDER ET ARCHIVER</button>`;
         }
@@ -177,13 +184,14 @@ const app = {
         document.getElementById('modal-recap').classList.remove('hidden');
     },
 
-    // --- ENVOI ET CALCUL DU COMPLÉMENT DE CAISSE ---
     sendToGoogleSheet() {
         const btn = document.getElementById('btn-sync');
+        if (!btn) return;
+
         btn.disabled = true; 
         btn.textContent = "🚀 Archivage...";
 
-        // Calcul des manques pour le fond de caisse avant réinitialisation
+        // 1. Calcul des besoins AVANT réinitialisation
         const instructionsAjout = this.calculateCashShortage();
 
         fetch(this.CONFIG.SCRIPT_URL, { 
@@ -193,16 +201,17 @@ const app = {
         })
         .then(() => { 
             btn.textContent = "✅ ENREGISTRÉ"; 
+            
             setTimeout(() => {
-                this.resetAllData();
                 this.closeRecap();
+                this.resetAllData();
                 
-                // Afficher le modal d'appoint de caisse
+                // 2. Affichage des manques pour le fond de caisse
                 this.showShortageModal(instructionsAjout);
                 
-                // Rediriger vers la vue Cartes Bancaires (view-cb)
-                this.showView('view-cb'); 
-            }, 1000);
+                // 3. REDIRECTION VERS L'ÉCRAN CARTES (ID: view-cards)
+                this.showView('view-cards'); 
+            }, 800);
         })
         .catch(() => { 
             alert("Erreur de connexion."); 
@@ -225,26 +234,24 @@ const app = {
             const dispo = currentIn[u] || 0;
             const cible = this.CONFIG.IDEAL_CASH[u];
             const manque = cible - dispo;
-
             if (manque > 0) {
-                html += `
-                    <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #eee;">
-                        <span>${u >= 5 ? 'Billet' : 'Pièce'} de <b>${u}€</b></span>
-                        <span style="color:#d32f2f; font-weight:bold;">Ajouter ${manque}</span>
+                html += `<div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #eee;">
+                        <span>${u >= 5 ? 'Billet' : 'Pièce'} <b>${u}€</b></span>
+                        <span style="color:#d32f2f; font-weight:bold;">+ ${manque}</span>
                     </div>`;
             }
         });
-        return html || "<p style='text-align:center;'>Fond de caisse déjà complet !</p>";
+        return html || "<p style='text-align:center;'>Caisse déjà prête !</p>";
     },
 
     showShortageModal(content) {
         const modalHtml = `
-            <div id="modal-fond" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); display:flex; align-items:center; justify-content:center; z-index:9999; padding:20px;">
-                <div style="background:white; padding:20px; border-radius:12px; width:100%; max-width:350px; border-top:6px solid #2ecc71;">
-                    <h3 style="margin:0 0 10px 0; color:#2c3e50;">🏁 Archivage réussi !</h3>
-                    <p style="font-size:0.85rem; color:#666; margin-bottom:15px;">Pour le fond de caisse de demain (134€), merci d'ajouter :</p>
-                    <div style="margin-bottom:20px;">${content}</div>
-                    <button class="btn-primary" onclick="this.closest('#modal-fond').remove()" style="width:100%; padding:15px; background:#2ecc71; border:none; color:white; border-radius:8px; font-weight:bold; cursor:pointer;">C'EST FAIT, PRÊT !</button>
+            <div id="modal-fond" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); display:flex; align-items:center; justify-content:center; z-index:10000; padding:20px;">
+                <div style="background:white; padding:20px; border-radius:15px; width:100%; max-width:340px; box-shadow:0 10px 25px rgba(0,0,0,0.5);">
+                    <h3 style="margin-top:0; color:#27ae60;">✔️ Archivage terminé</h3>
+                    <p style="font-size:0.85rem; color:#666;">Préparez le fond de caisse (134€) en ajoutant :</p>
+                    <div style="margin:15px 0; max-height:250px; overflow-y:auto;">${content}</div>
+                    <button class="btn-primary" onclick="this.closest('#modal-fond').remove()" style="width:100%; padding:15px; border-radius:10px;">C'EST FAIT !</button>
                 </div>
             </div>
         `;
@@ -267,14 +274,15 @@ const app = {
     closeRecap() { document.getElementById('modal-recap').classList.add('hidden'); },
 
     saveToStorage() {
+        const getVal = id => document.getElementById(id) ? document.getElementById(id).value : '';
         const data = { state: this.state, dom: {
-            cb: [document.getElementById('cb-contact').value, document.getElementById('cb-sans-contact').value],
-            tr: [document.getElementById('tr-contact').value, document.getElementById('tr-sans-contact').value],
-            amex: [document.getElementById('amex-contact').value, document.getElementById('amex-sans-contact').value],
-            cash_offset: document.getElementById('cash-offset').value,
+            cb: [getVal('cb-contact'), getVal('cb-sans-contact')],
+            tr: [getVal('tr-contact'), getVal('tr-sans-contact')],
+            amex: [getVal('amex-contact'), getVal('amex-sans-contact')],
+            cash_offset: getVal('cash-offset'),
             cash_vals: Array.from(document.querySelectorAll('.cash-in')).map(i => i.value),
-            pos: { c: document.getElementById('pos-cash').value, p: document.getElementById('pos-pizzas').value },
-            tva: [document.getElementById('tva-5').value, document.getElementById('tva-10').value, document.getElementById('tva-20').value]
+            pos: { c: getVal('pos-cash'), p: getVal('pos-pizzas') },
+            tva: [getVal('tva-5'), getVal('tva-10'), getVal('tva-20')]
         }};
         localStorage.setItem('dolus_v_final', JSON.stringify(data));
     },
@@ -283,13 +291,17 @@ const app = {
         const s = JSON.parse(localStorage.getItem('dolus_v_final')); if (!s) return;
         this.state = s.state || { ancv: [], checks: [], mypos: [] };
         const d = s.dom;
-        document.getElementById('cb-contact').value = d.cb[0]; document.getElementById('cb-sans-contact').value = d.cb[1];
-        document.getElementById('tr-contact').value = d.tr[0]; document.getElementById('tr-sans-contact').value = d.tr[1];
-        document.getElementById('amex-contact').value = d.amex[0]; document.getElementById('amex-sans-contact').value = d.amex[1];
-        document.getElementById('cash-offset').value = d.cash_offset;
-        document.getElementById('pos-cash').value = d.pos.c; document.getElementById('pos-pizzas').value = d.pos.p;
-        document.getElementById('tva-5').value = d.tva[0]; document.getElementById('tva-10').value = d.tva[1]; document.getElementById('tva-20').value = d.tva[2];
-        const inputs = document.querySelectorAll('.cash-in'); d.cash_vals.forEach((v, i) => { if(inputs[i]) inputs[i].value = v; });
+        const setVal = (id, val) => { if(document.getElementById(id)) document.getElementById(id).value = val; };
+        
+        setVal('cb-contact', d.cb[0]); setVal('cb-sans-contact', d.cb[1]);
+        setVal('tr-contact', d.tr[0]); setVal('tr-sans-contact', d.tr[1]);
+        setVal('amex-contact', d.amex[0]); setVal('amex-sans-contact', d.amex[1]);
+        setVal('cash-offset', d.cash_offset);
+        setVal('pos-cash', d.pos.c); setVal('pos-pizzas', d.pos.p);
+        setVal('tva-5', d.tva[0]); setVal('tva-10', d.tva[1]); setVal('tva-20', d.tva[2]);
+        
+        const inputs = document.querySelectorAll('.cash-in');
+        if (d.cash_vals) d.cash_vals.forEach((v, i) => { if(inputs[i]) inputs[i].value = v; });
     },
 
     bindEvents() { document.addEventListener('input', () => this.refreshUI()); }
