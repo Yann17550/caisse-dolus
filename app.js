@@ -4,17 +4,26 @@
  * https://script.google.com/macros/s/AKfycbz7Xvhqd98MGNXI0kUzrNNYJpV7RmDPs18brYPJsmg1t4-Hww3XrUzk79mcg6jQdbP6EA/exec
  */
 
+/**
+ * APPLICATION : Caisse Dolus
+ * MISSION : Fond de caisse par défaut à 134€ et gestion des flux
+ */
+
 const app = {
     state: { ancv: [], checks: [], mypos: [] },
 
-    // Remplace par ton URL Google Script
     CONFIG: {
-        SCRIPT_URL:"https://script.google.com/macros/s/AKfycbz7Xvhqd98MGNXI0kUzrNNYJpV7RmDPs18brYPJsmg1t4-Hww3XrUzk79mcg6jQdbP6EA/exec" 
+        SCRIPT_URL:"https://script.google.com/macros/s/AKfycbz7Xvhqd98MGNXI0kUzrNNYJpV7RmDPs18brYPJsmg1t4-Hww3XrUzk79mcg6jQdbP6EA/exec",
+        DEFAULT_CASH_OFFSET: 134.00 // Ton fond de caisse habituel
     },
 
     init() {
         this.renderCashGrid();
         this.loadFromStorage();
+        // Si après chargement le champ est vide, on met la valeur par défaut
+        const offsetInput = document.getElementById('cash-offset');
+        if (!offsetInput.value) offsetInput.value = this.CONFIG.DEFAULT_CASH_OFFSET;
+        
         this.bindEvents();
         this.refreshUI();
     },
@@ -37,7 +46,7 @@ const app = {
         `).join('');
     },
 
-    // --- GESTION DES LISTES ---
+    // --- LOGIQUE DES LISTES ---
     addAncv() {
         const val = parseFloat(document.getElementById('ancv-val').value);
         const qty = parseInt(document.getElementById('ancv-qty').value) || 0;
@@ -66,9 +75,20 @@ const app = {
         document.getElementById('total-amex').textContent = getSum('amex-contact', 'amex-sans-contact').toFixed(2);
 
         let brut = 0;
-        document.querySelectorAll('.cash-in').forEach(i => brut += (parseFloat(i.dataset.unit) * (parseInt(i.value) || 0)));
+        let hasInputCash = false;
+        document.querySelectorAll('.cash-in').forEach(i => {
+            const val = parseInt(i.value) || 0;
+            if (val > 0) hasInputCash = true;
+            brut += (parseFloat(i.dataset.unit) * val);
+        });
+
         const offset = parseFloat(document.getElementById('cash-offset').value) || 0;
-        document.getElementById('total-cash-net').textContent = (brut - offset).toFixed(2);
+        
+        // Espèces Net : 0 si rien compté, sinon Brut - Fond de caisse
+        const net = hasInputCash ? (brut - offset) : 0;
+
+        document.getElementById('total-cash-brut').textContent = brut.toFixed(2);
+        document.getElementById('total-cash-net').textContent = net.toFixed(2);
 
         document.getElementById('total-ancv-paper').textContent = this.state.ancv.filter(i=>i.type==='paper').reduce((a,b)=>a+(b.val*b.qty),0).toFixed(2);
         document.getElementById('total-ancv-connect').textContent = this.state.ancv.filter(i=>i.type==='connect').reduce((a,b)=>a+(b.val*b.qty),0).toFixed(2);
@@ -85,13 +105,12 @@ const app = {
         document.getElementById('checks-recap').innerHTML = this.state.checks.map((amt, idx) => `<div class="recap-item"><span>Chèque #${idx+1}</span><strong>${amt.toFixed(2)}€</strong><button onclick="app.removeCheck(${idx})">❌</button></div>`).join('');
     },
 
-    // --- RÉCAPITULATIF ET VALIDATION ---
     openRecap() {
         const v = id => parseFloat(document.getElementById(id).textContent) || 0;
         const getIn = id => parseFloat(document.getElementById(id).value) || 0;
 
         const totalCB_Amex = v('total-cb') + v('total-amex');
-        const cashCompte = v('total-cash-net');
+        const cashCompte = v('total-cash-net'); 
         const totalANCV = v('total-ancv-paper') + v('total-ancv-connect');
         const totalChecks = v('total-checks');
         const totalTR = v('total-tr');
@@ -116,7 +135,7 @@ const app = {
             <div style="font-size:0.9rem; border-bottom:1px solid #ddd; padding-bottom:10px; margin-bottom:10px;">
                 <p style="font-weight:bold; color:#2c3e50; margin-bottom:5px; text-decoration:underline;">POINTAGE PHYSIQUE (RÉEL)</p>
                 <div class="recap-row"><span>CB (Banque + Amex) :</span><strong>${totalCB_Amex.toFixed(2)} €</strong></div>
-                <div class="recap-row"><span>Espèces Comptées :</span><strong>${cashCompte.toFixed(2)} €</strong></div>
+                <div class="recap-row"><span>Espèces Net :</span><strong>${cashCompte.toFixed(2)} €</strong></div>
                 <div class="recap-row"><span>CB Ticket Resto :</span><strong>${totalTR.toFixed(2)} €</strong></div>
                 <div class="recap-row"><span>Total ANCV :</span><strong>${totalANCV.toFixed(2)} €</strong></div>
                 <div class="recap-row"><span>Total Chèques :</span><strong>${totalChecks.toFixed(2)} €</strong></div>
@@ -140,7 +159,7 @@ const app = {
 
         const diffTVA = Math.abs(sommePaiementsLogiciel - tvaTotal);
         if (diffTVA >= 0.05) {
-            html += `<div style="background:#f8d7da; color:#721c24; padding:8px; border-radius:5px; margin-top:10px; font-size:0.8rem;">❌ Écart TVA de ${diffTVA.toFixed(2)}€ detecté.</div>
+            html += `<div style="background:#f8d7da; color:#721c24; padding:8px; border-radius:5px; margin-top:10px; font-size:0.8rem;">❌ Écart TVA détecté.</div>
                      <button class="btn-primary" style="width:100%; margin-top:10px; background:#ccc;" disabled>CORRIGER POUR VALIDER</button>`;
         } else {
             html += `<button id="btn-sync" class="btn-primary" style="width:100%; margin-top:15px;" onclick="app.sendToGoogleSheet()">💾 VALIDER ET ARCHIVER</button>`;
@@ -150,45 +169,33 @@ const app = {
         document.getElementById('modal-recap').classList.remove('hidden');
     },
 
-    // --- ENVOI ET REMISE À ZÉRO ---
     sendToGoogleSheet() {
         const btn = document.getElementById('btn-sync');
-        btn.disabled = true; btn.textContent = "🚀 Archivage en cours...";
-        
+        btn.disabled = true; btn.textContent = "🚀 Archivage...";
         fetch(this.CONFIG.SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(this.currentData) })
         .then(() => { 
             btn.textContent = "✅ ENREGISTRÉ"; 
-            btn.style.background = "#27ae60";
-            // Petit délai pour laisser l'utilisateur voir le succès avant d'effacer
             setTimeout(() => {
                 this.resetAllData();
                 this.closeRecap();
-                alert("Clôture réussie ! Les données ont été effacées pour le prochain service.");
+                alert("Clôture réussie ! Données réinitialisées.");
                 this.showView('view-home');
             }, 1500);
         })
-        .catch(() => { 
-            alert("Erreur de connexion. Les données n'ont pas été effacées.");
-            btn.disabled = false; 
-            btn.textContent = "Réessayer"; 
-        });
+        .catch(() => { alert("Erreur de connexion."); btn.disabled = false; btn.textContent = "Réessayer"; });
     },
 
     resetAllData() {
-        // 1. Vider le state (listes)
         this.state = { ancv: [], checks: [], mypos: [] };
-        
-        // 2. Vider tous les inputs (nombre et texte)
         document.querySelectorAll('input').forEach(input => {
-            if (input.type === 'number' || input.type === 'text') {
+            // Pour le fond de caisse, on remet la valeur par défaut au lieu de vider
+            if (input.id === 'cash-offset') {
+                input.value = this.CONFIG.DEFAULT_CASH_OFFSET;
+            } else if (input.type === 'number' || input.type === 'text') {
                 input.value = '';
             }
         });
-
-        // 3. Vider le localStorage
         localStorage.removeItem('dolus_v_final');
-
-        // 4. Rafraîchir l'interface
         this.refreshUI();
     },
 
