@@ -7,6 +7,7 @@
 const app = {
     state: { ancv: [], checks: [], mypos: [] },
 
+    // Remplace par ton URL Google Script
     CONFIG: {
         SCRIPT_URL:"https://script.google.com/macros/s/AKfycbz7Xvhqd98MGNXI0kUzrNNYJpV7RmDPs18brYPJsmg1t4-Hww3XrUzk79mcg6jQdbP6EA/exec" 
     },
@@ -36,6 +37,7 @@ const app = {
         `).join('');
     },
 
+    // --- GESTION DES LISTES ---
     addAncv() {
         const val = parseFloat(document.getElementById('ancv-val').value);
         const qty = parseInt(document.getElementById('ancv-qty').value) || 0;
@@ -56,6 +58,7 @@ const app = {
     },
     removeMyPos(idx) { this.state.mypos.splice(idx, 1); this.refreshUI(); },
 
+    // --- CALCULS ET INTERFACE ---
     refreshUI() {
         const getSum = (id1, id2) => (parseFloat(document.getElementById(id1).value) || 0) + (parseFloat(document.getElementById(id2).value) || 0);
         document.getElementById('total-cb').textContent = getSum('cb-contact', 'cb-sans-contact').toFixed(2);
@@ -67,7 +70,6 @@ const app = {
         const offset = parseFloat(document.getElementById('cash-offset').value) || 0;
         document.getElementById('total-cash-net').textContent = (brut - offset).toFixed(2);
 
-        const tAncv = this.state.ancv.reduce((a, b) => a + (b.val * b.qty), 0);
         document.getElementById('total-ancv-paper').textContent = this.state.ancv.filter(i=>i.type==='paper').reduce((a,b)=>a+(b.val*b.qty),0).toFixed(2);
         document.getElementById('total-ancv-connect').textContent = this.state.ancv.filter(i=>i.type==='connect').reduce((a,b)=>a+(b.val*b.qty),0).toFixed(2);
         document.getElementById('total-checks').textContent = this.state.checks.reduce((a, b) => a + b, 0).toFixed(2);
@@ -83,11 +85,11 @@ const app = {
         document.getElementById('checks-recap').innerHTML = this.state.checks.map((amt, idx) => `<div class="recap-item"><span>Chèque #${idx+1}</span><strong>${amt.toFixed(2)}€</strong><button onclick="app.removeCheck(${idx})">❌</button></div>`).join('');
     },
 
+    // --- RÉCAPITULATIF ET VALIDATION ---
     openRecap() {
         const v = id => parseFloat(document.getElementById(id).textContent) || 0;
         const getIn = id => parseFloat(document.getElementById(id).value) || 0;
 
-        // Groupements demandés
         const totalCB_Amex = v('total-cb') + v('total-amex');
         const cashCompte = v('total-cash-net');
         const totalANCV = v('total-ancv-paper') + v('total-ancv-connect');
@@ -95,7 +97,6 @@ const app = {
         const totalTR = v('total-tr');
         const myPosTotal = v('total-mypos');
         
-        // Calcul pour validation Logiciel
         const posCashLogiciel = getIn('pos-cash');
         const sommePaiementsLogiciel = totalCB_Amex + totalTR + totalANCV + totalChecks + posCashLogiciel;
         
@@ -107,13 +108,14 @@ const app = {
             cashNet: cashCompte, ancvP: v('total-ancv-paper'), ancvC: v('total-ancv-connect'),
             checks: totalChecks, totalReal: sommePaiementsLogiciel + myPosTotal,
             posCash: posCashLogiciel, deltaCash: deltaCash,
-            tva5: getIn('tva-5'), tva10: getIn('tva-10'), tva20: getIn('tva-20')
+            tva5: getIn('tva-5'), tva10: getIn('tva-10'), tva20: getIn('tva-20'),
+            pizzas: getIn('pos-pizzas')
         };
 
         let html = `
             <div style="font-size:0.9rem; border-bottom:1px solid #ddd; padding-bottom:10px; margin-bottom:10px;">
-                <p style="font-weight:bold; color:#2c3e50; margin-bottom:5px; text-decoration:underline;">POINTAGE PHYSIQUE (TPE/CAISSE)</p>
-                <div class="recap-row"><span>CB (Classique + Amex) :</span><strong>${totalCB_Amex.toFixed(2)} €</strong></div>
+                <p style="font-weight:bold; color:#2c3e50; margin-bottom:5px; text-decoration:underline;">POINTAGE PHYSIQUE (RÉEL)</p>
+                <div class="recap-row"><span>CB (Banque + Amex) :</span><strong>${totalCB_Amex.toFixed(2)} €</strong></div>
                 <div class="recap-row"><span>Espèces Comptées :</span><strong>${cashCompte.toFixed(2)} €</strong></div>
                 <div class="recap-row"><span>CB Ticket Resto :</span><strong>${totalTR.toFixed(2)} €</strong></div>
                 <div class="recap-row"><span>Total ANCV :</span><strong>${totalANCV.toFixed(2)} €</strong></div>
@@ -141,21 +143,53 @@ const app = {
             html += `<div style="background:#f8d7da; color:#721c24; padding:8px; border-radius:5px; margin-top:10px; font-size:0.8rem;">❌ Écart TVA de ${diffTVA.toFixed(2)}€ detecté.</div>
                      <button class="btn-primary" style="width:100%; margin-top:10px; background:#ccc;" disabled>CORRIGER POUR VALIDER</button>`;
         } else {
-            html += `<button id="btn-sync" class="btn-primary" style="width:100%; margin-top:15px;" onclick="app.sendToGoogleSheet()">💾 ENREGISTRER LA CLÔTURE</button>`;
+            html += `<button id="btn-sync" class="btn-primary" style="width:100%; margin-top:15px;" onclick="app.sendToGoogleSheet()">💾 VALIDER ET ARCHIVER</button>`;
         }
 
         document.getElementById('recap-body').innerHTML = html;
         document.getElementById('modal-recap').classList.remove('hidden');
     },
 
+    // --- ENVOI ET REMISE À ZÉRO ---
     sendToGoogleSheet() {
         const btn = document.getElementById('btn-sync');
-        btn.disabled = true; btn.textContent = "🚀 Archivage...";
+        btn.disabled = true; btn.textContent = "🚀 Archivage en cours...";
+        
         fetch(this.CONFIG.SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(this.currentData) })
         .then(() => { 
-            document.getElementById('sync-status').innerHTML = "<span style='color:green'>✅ Données enregistrées !</span>";
-            btn.textContent = "✅ ARCHIVÉ"; btn.style.background = "#27ae60";
-        }).catch(() => { btn.disabled = false; btn.textContent = "Réessayer"; });
+            btn.textContent = "✅ ENREGISTRÉ"; 
+            btn.style.background = "#27ae60";
+            // Petit délai pour laisser l'utilisateur voir le succès avant d'effacer
+            setTimeout(() => {
+                this.resetAllData();
+                this.closeRecap();
+                alert("Clôture réussie ! Les données ont été effacées pour le prochain service.");
+                this.showView('view-home');
+            }, 1500);
+        })
+        .catch(() => { 
+            alert("Erreur de connexion. Les données n'ont pas été effacées.");
+            btn.disabled = false; 
+            btn.textContent = "Réessayer"; 
+        });
+    },
+
+    resetAllData() {
+        // 1. Vider le state (listes)
+        this.state = { ancv: [], checks: [], mypos: [] };
+        
+        // 2. Vider tous les inputs (nombre et texte)
+        document.querySelectorAll('input').forEach(input => {
+            if (input.type === 'number' || input.type === 'text') {
+                input.value = '';
+            }
+        });
+
+        // 3. Vider le localStorage
+        localStorage.removeItem('dolus_v_final');
+
+        // 4. Rafraîchir l'interface
+        this.refreshUI();
     },
 
     closeRecap() { document.getElementById('modal-recap').classList.add('hidden'); },
