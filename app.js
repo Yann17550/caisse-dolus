@@ -1,6 +1,7 @@
 /**
  * APPLICATION : Caisse Dolus
- * MISSION : Production-grade, modularité, et archivage avec récapitulatif dynamique
+ * MISSION : Production-grade, validation sur CA Logiciel vs TVA
+ * https://script.google.com/macros/s/AKfycbz7Xvhqd98MGNXI0kUzrNNYJpV7RmDPs18brYPJsmg1t4-Hww3XrUzk79mcg6jQdbP6EA/exec 
  */
 
 const app = {
@@ -106,33 +107,36 @@ const app = {
         const v = id => parseFloat(document.getElementById(id).textContent) || 0;
         const getIn = id => parseFloat(document.getElementById(id).value) || 0;
 
-        const totalPhysique = v('total-cb') + v('total-tr') + v('total-mypos') + v('total-amex') + 
-                             v('total-cash-net') + v('total-ancv-paper') + v('total-ancv-connect') + v('total-checks');
-        
+        // VALEUR LOGICIEL (On utilise pos-cash et non total-cash-net)
         const posCash = getIn('pos-cash');
+        const totalTheorique = v('total-cb') + v('total-tr') + v('total-mypos') + v('total-amex') + 
+                               posCash + v('total-ancv-paper') + v('total-ancv-connect') + v('total-checks');
+        
         const tva5 = getIn('tva-5');
         const tva10 = getIn('tva-10');
         const tva20 = getIn('tva-20');
         const tvaTotal = tva5 + tva10 + tva20;
 
+        // Pour l'envoi Google, on garde tout
         this.currentData = {
             cb: v('total-cb'), tr: v('total-tr'), mypos: v('total-mypos'), amex: v('total-amex'),
-            cashNet: v('total-cash-net'), ancvP: v('total-ancv-paper'), ancvC: v('total-ancv-connect'),
-            checks: v('total-checks'), totalReal: totalPhysique, posCash: posCash,
-            deltaCash: v('total-cash-net') - posCash, pizzas: getIn('pos-pizzas'),
+            cashNet: v('total-cash-net'), // Ce qu'il y a dans la main
+            ancvP: v('total-ancv-paper'), ancvC: v('total-ancv-connect'),
+            checks: v('total-checks'), 
+            totalReal: totalTheorique, // On archive la base CA Logiciel
+            posCash: posCash,          // Ce qui devrait être en caisse
+            deltaCash: v('total-cash-net') - posCash, // Erreur de caisse
+            pizzas: getIn('pos-pizzas'),
             tva5: tva5, tva10: tva10, tva20: tva20
         };
 
-        // --- GÉNÉRATION DU HTML DYNAMIQUE (Uniquement si > 0) ---
+        // Construction du HTML dynamique pour le récap
         let linesHtml = "";
         const lines = [
-            { label: "CB Classique", val: v('total-cb') },
+            { label: "CB / AMEX / MyPOS", val: v('total-cb') + v('total-amex') + v('total-mypos') },
             { label: "Titres Resto", val: v('total-tr') },
-            { label: "MyPOS", val: v('total-mypos') },
-            { label: "AMEX", val: v('total-amex') },
-            { label: "Espèces", val: v('total-cash-net') },
-            { label: "ANCV Papier", val: v('total-ancv-paper') },
-            { label: "ANCV Connect", val: v('total-ancv-connect') },
+            { label: "Espèces (Logiciel)", val: posCash },
+            { label: "ANCV", val: v('total-ancv-paper') + v('total-ancv-connect') },
             { label: "Chèques", val: v('total-checks') }
         ];
 
@@ -146,24 +150,24 @@ const app = {
             <div style="border-bottom:1px solid #ddd; margin-bottom:10px; padding-bottom:10px; font-size:0.9rem;">
                 ${linesHtml || '<div style="text-align:center; color:#999;">Aucun encaissement saisi</div>'}
             </div>
-            <div class="recap-row" style="font-weight:bold; color:#2c3e50;"><span>💰 TOTAL RÉEL :</span><span>${totalPhysique.toFixed(2)} €</span></div>
-            <div class="recap-row" style="font-weight:bold; color:#2c3e50;"><span>🧾 TOTAL TVA :</span><span>${tvaTotal.toFixed(2)} €</span></div>
+            <div class="recap-row" style="font-weight:bold; color:#2c3e50;"><span>🧾 CA THÉORIQUE :</span><span>${totalTheorique.toFixed(2)} €</span></div>
+            <div class="recap-row" style="font-weight:bold; color:#2c3e50;"><span>📊 TOTAL TVA :</span><span>${tvaTotal.toFixed(2)} €</span></div>
         `;
 
-        const diffTVA = Math.abs(totalPhysique - tvaTotal);
+        const diffTVA = Math.abs(totalTheorique - tvaTotal);
         const estValide = diffTVA < 0.05; 
 
         if (!estValide) {
             html += `
                 <div style="background:#fff3cd; color:#856404; padding:10px; border-radius:8px; margin-top:10px; font-size:0.8rem; border:1px solid #ffeeba;">
-                    ⚠️ Écart de <strong>${(totalPhysique - tvaTotal).toFixed(2)}€</strong>.
+                    ⚠️ L'écart avec la TVA est de <strong>${(totalTheorique - tvaTotal).toFixed(2)}€</strong>.
                 </div>
-                <button class="btn-primary" style="width:100%; margin-top:15px; background:#ccc;" disabled>ÉCART TROP IMPORTANT</button>
+                <button class="btn-primary" style="width:100%; margin-top:15px; background:#ccc;" disabled>CORRIGER LES TVA</button>
             `;
         } else {
             html += `
                 <div style="background:#d4edda; color:#155724; padding:10px; border-radius:8px; margin-top:10px; font-size:0.85rem;">
-                    ✅ Équilibre parfait.
+                    ✅ Concordance parfaite avec le logiciel.
                 </div>
                 <button id="btn-sync" class="btn-primary" style="width:100%; margin-top:15px;" onclick="app.sendToGoogleSheet()">💾 ENREGISTRER SUR GOOGLE</button>
             `;
@@ -178,7 +182,7 @@ const app = {
         const btn = document.getElementById('btn-sync');
         const status = document.getElementById('sync-status');
         btn.disabled = true;
-        btn.textContent = "🚀 Envoi...";
+        btn.textContent = "🚀 Archivage...";
 
         fetch(this.CONFIG.SCRIPT_URL, {
             method: 'POST',
@@ -186,13 +190,13 @@ const app = {
             body: JSON.stringify(this.currentData)
         })
         .then(() => {
-            status.textContent = "✅ Données transmises !";
+            status.textContent = "✅ Enregistré dans le Cloud !";
             status.style.color = "green";
             btn.textContent = "✅ ARCHIVÉ";
             btn.style.background = "#27ae60";
         })
         .catch(() => {
-            status.textContent = "❌ Erreur d'envoi";
+            status.textContent = "❌ Erreur de connexion";
             btn.disabled = false;
             btn.textContent = "Réessayer";
         });
