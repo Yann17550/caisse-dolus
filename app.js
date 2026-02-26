@@ -40,7 +40,7 @@ const app = {
         `).join('');
     },
 
-    // --- LOGIQUE DES LISTES ---
+    // --- LOGIQUE DES LISTES (N'oubliez pas de cliquer sur Ajouter) ---
     addAncv() {
         const val = parseFloat(document.getElementById('ancv-val').value);
         const qty = parseInt(document.getElementById('ancv-qty').value) || 0;
@@ -91,13 +91,13 @@ const app = {
 
     renderRecaps() {
         document.getElementById('mypos-recap').innerHTML = this.state.mypos.map((amt, idx) => `
-            <div class="recap-item"><span>Trans. n°${idx+1}</span><strong>${amt.toFixed(2)}€</strong><button onclick="app.removeMyPos(${idx})">❌</button></div>
+            <div class="recap-item"><span>Vente MyPOS #${idx+1}</span><strong>${amt.toFixed(2)}€</strong><button onclick="app.removeMyPos(${idx})">❌</button></div>
         `).join('');
         document.getElementById('ancv-recap').innerHTML = this.state.ancv.map((item, idx) => `
             <div class="recap-item"><span>${item.type==='paper'?'📄':'📱'} ${item.qty}x${item.val}€</span><strong>${(item.val*item.qty).toFixed(2)}€</strong><button onclick="app.removeAncv(${idx})">❌</button></div>
         `).join('');
         document.getElementById('checks-recap').innerHTML = this.state.checks.map((amt, idx) => `
-            <div class="recap-item"><span>Chèque n°${idx+1}</span><strong>${amt.toFixed(2)}€</strong><button onclick="app.removeCheck(${idx})">❌</button></div>
+            <div class="recap-item"><span>Chèque #${idx+1}</span><strong>${amt.toFixed(2)}€</strong><button onclick="app.removeCheck(${idx})">❌</button></div>
         `).join('');
     },
 
@@ -106,6 +106,7 @@ const app = {
         const v = id => parseFloat(document.getElementById(id).textContent) || 0;
         const getIn = id => parseFloat(document.getElementById(id).value) || 0;
 
+        // On inclut bien MyPOS dans le total physique
         const totalPhysique = v('total-cb') + v('total-tr') + v('total-mypos') + v('total-amex') + 
                              v('total-cash-net') + v('total-ancv-paper') + v('total-ancv-connect') + v('total-checks');
         
@@ -116,10 +117,6 @@ const app = {
         const tvaTotal = tva5 + tva10 + tva20;
         const pizzas = getIn('pos-pizzas');
 
-        const diffTVA = Math.abs(totalPhysique - tvaTotal);
-        const estValide = diffTVA < 0.05; 
-
-        // Stockage des données pour l'envoi
         this.currentData = {
             cb: v('total-cb'), tr: v('total-tr'), mypos: v('total-mypos'), amex: v('total-amex'),
             cashNet: v('total-cash-net'), ancvP: v('total-ancv-paper'), ancvC: v('total-ancv-connect'),
@@ -128,22 +125,33 @@ const app = {
             tva5: tva5, tva10: tva10, tva20: tva20
         };
 
+        // Affichage détaillé dans le récapitulatif
         let html = `
-            <div class="recap-row"><span>💰 Encaissements</span><strong>${totalPhysique.toFixed(2)} €</strong></div>
-            <div class="recap-row"><span>🧾 CA Logiciel (TVA)</span><strong>${tvaTotal.toFixed(2)} €</strong></div>
+            <div style="border-bottom:1px solid #ddd; margin-bottom:10px; padding-bottom:10px; font-size:0.9rem;">
+                <div class="recap-row"><span>CB Classique :</span><span>${v('total-cb').toFixed(2)} €</span></div>
+                <div class="recap-row"><span>MyPOS :</span><span>${v('total-mypos').toFixed(2)} €</span></div>
+                <div class="recap-row"><span>Espèces :</span><span>${v('total-cash-net').toFixed(2)} €</span></div>
+                <div class="recap-row"><span>ANCV :</span><span>${(v('total-ancv-paper')+v('total-ancv-connect')).toFixed(2)} €</span></div>
+                <div class="recap-row"><span>Chèques :</span><span>${v('total-checks').toFixed(2)} €</span></div>
+            </div>
+            <div class="recap-row" style="font-weight:bold; color:#2c3e50;"><span>💰 TOTAL RÉEL :</span><span>${totalPhysique.toFixed(2)} €</span></div>
+            <div class="recap-row" style="font-weight:bold; color:#2c3e50;"><span>🧾 TOTAL LOGICIEL :</span><span>${tvaTotal.toFixed(2)} €</span></div>
         `;
+
+        const diffTVA = Math.abs(totalPhysique - tvaTotal);
+        const estValide = diffTVA < 0.05; 
 
         if (!estValide) {
             html += `
-                <div style="background:#fff3cd; color:#856404; padding:10px; border-radius:8px; margin-top:10px; font-size:0.85rem; border:1px solid #ffeeba;">
-                    ⚠️ <strong>Erreur de concordance :</strong> L'écart est de <strong>${(totalPhysique - tvaTotal).toFixed(2)}€</strong>. 
+                <div style="background:#fff3cd; color:#856404; padding:10px; border-radius:8px; margin-top:10px; font-size:0.8rem; border:1px solid #ffeeba;">
+                    ⚠️ Écart de <strong>${(totalPhysique - tvaTotal).toFixed(2)}€</strong>. Vérifie tes saisies avant d'enregistrer.
                 </div>
-                <button class="btn-primary" style="width:100%; margin-top:15px; background:#ccc;" disabled>CORRIGER POUR VALIDER</button>
+                <button class="btn-primary" style="width:100%; margin-top:15px; background:#ccc;" disabled>ÉCART TROP IMPORTANT</button>
             `;
         } else {
             html += `
                 <div style="background:#d4edda; color:#155724; padding:10px; border-radius:8px; margin-top:10px; font-size:0.85rem;">
-                    ✅ Équilibre parfait.
+                    ✅ Équilibre parfait. Les données peuvent être archivées.
                 </div>
                 <button id="btn-sync" class="btn-primary" style="width:100%; margin-top:15px;" onclick="app.sendToGoogleSheet()">💾 ENREGISTRER SUR GOOGLE</button>
             `;
@@ -158,13 +166,8 @@ const app = {
         const btn = document.getElementById('btn-sync');
         const status = document.getElementById('sync-status');
         
-        if (this.CONFIG.SCRIPT_URL.includes("TON_URL")) {
-            alert("Erreur : Configure l'URL Google Apps Script dans app.js");
-            return;
-        }
-
         btn.disabled = true;
-        btn.textContent = "🚀 Envoi...";
+        btn.textContent = "🚀 Envoi en cours...";
 
         fetch(this.CONFIG.SCRIPT_URL, {
             method: 'POST',
@@ -172,13 +175,15 @@ const app = {
             body: JSON.stringify(this.currentData)
         })
         .then(() => {
-            status.textContent = "✅ Enregistré dans Google Sheets !";
+            status.textContent = "✅ Données transmises avec succès !";
             status.style.color = "green";
-            btn.textContent = "✅ TERMINÉ";
+            btn.textContent = "✅ ARCHIVÉ";
             btn.style.background = "#27ae60";
+            // Optionnel : vider le stockage local après succès
+            // localStorage.removeItem('dolus_v_final'); 
         })
         .catch(() => {
-            status.textContent = "❌ Erreur réseau";
+            status.textContent = "❌ Erreur lors de l'envoi";
             btn.disabled = false;
             btn.textContent = "Réessayer";
         });
