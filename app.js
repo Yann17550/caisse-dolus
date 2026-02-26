@@ -1,6 +1,6 @@
 /**
  * APPLICATION : Caisse Dolus
- * MISSION : Production-grade, validation TVA stricte et archivage Google Sheets
+ * MISSION : Production-grade, modularité, et archivage TVA détaillée
  */
 
 const app = {
@@ -10,7 +10,7 @@ const app = {
         mypos: []
     },
 
-    // URL de ton Google Apps Script (à mettre à jour)
+    // URL de ton Google Apps Script
     CONFIG: {
         SCRIPT_URL: "https://script.google.com/macros/s/AKfycbz7Xvhqd98MGNXI0kUzrNNYJpV7RmDPs18brYPJsmg1t4-Hww3XrUzk79mcg6jQdbP6EA/exec" 
     },
@@ -40,7 +40,7 @@ const app = {
         `).join('');
     },
 
-    // --- LOGIQUE DES LISTES (ANCV, CHÈQUES, MYPOS) ---
+    // --- LOGIQUE DES LISTES ---
     addAncv() {
         const val = parseFloat(document.getElementById('ancv-val').value);
         const qty = parseInt(document.getElementById('ancv-qty').value) || 0;
@@ -110,17 +110,22 @@ const app = {
                              v('total-cash-net') + v('total-ancv-paper') + v('total-ancv-connect') + v('total-checks');
         
         const posCash = getIn('pos-cash');
-        const tvaTotal = getIn('tva-5') + getIn('tva-10') + getIn('tva-20');
+        const tva5 = getIn('tva-5');
+        const tva10 = getIn('tva-10');
+        const tva20 = getIn('tva-20');
+        const tvaTotal = tva5 + tva10 + tva20;
         const pizzas = getIn('pos-pizzas');
 
         const diffTVA = Math.abs(totalPhysique - tvaTotal);
-        const estValide = diffTVA < 0.05; // Tolérance 5 centimes pour arrondis
+        const estValide = diffTVA < 0.05; 
 
+        // Stockage des données pour l'envoi
         this.currentData = {
             cb: v('total-cb'), tr: v('total-tr'), mypos: v('total-mypos'), amex: v('total-amex'),
             cashNet: v('total-cash-net'), ancvP: v('total-ancv-paper'), ancvC: v('total-ancv-connect'),
             checks: v('total-checks'), totalReal: totalPhysique, posCash: posCash,
-            deltaCash: v('total-cash-net') - posCash, pizzas: pizzas, tvaTotal: tvaTotal
+            deltaCash: v('total-cash-net') - posCash, pizzas: pizzas,
+            tva5: tva5, tva10: tva10, tva20: tva20
         };
 
         let html = `
@@ -132,14 +137,13 @@ const app = {
             html += `
                 <div style="background:#fff3cd; color:#856404; padding:10px; border-radius:8px; margin-top:10px; font-size:0.85rem; border:1px solid #ffeeba;">
                     ⚠️ <strong>Erreur de concordance :</strong> L'écart est de <strong>${(totalPhysique - tvaTotal).toFixed(2)}€</strong>. 
-                    Le total TVA doit être égal au total des encaissements pour valider.
                 </div>
                 <button class="btn-primary" style="width:100%; margin-top:15px; background:#ccc;" disabled>CORRIGER POUR VALIDER</button>
             `;
         } else {
             html += `
                 <div style="background:#d4edda; color:#155724; padding:10px; border-radius:8px; margin-top:10px; font-size:0.85rem;">
-                    ✅ Équilibre parfait. Prêt pour archivage.
+                    ✅ Équilibre parfait.
                 </div>
                 <button id="btn-sync" class="btn-primary" style="width:100%; margin-top:15px;" onclick="app.sendToGoogleSheet()">💾 ENREGISTRER SUR GOOGLE</button>
             `;
@@ -154,8 +158,8 @@ const app = {
         const btn = document.getElementById('btn-sync');
         const status = document.getElementById('sync-status');
         
-        if (this.CONFIG.SCRIPT_URL === "TON_URL_APPS_SCRIPT_ICI") {
-            alert("Erreur : Tu n'as pas encore configuré l'URL Google Apps Script dans app.js");
+        if (this.CONFIG.SCRIPT_URL.includes("https://script.google.com/macros/s/AKfycbz7Xvhqd98MGNXI0kUzrNNYJpV7RmDPs18brYPJsmg1t4-Hww3XrUzk79mcg6jQdbP6EA/exec")) {
+            alert("Erreur : Configure l'URL Google Apps Script dans app.js");
             return;
         }
 
