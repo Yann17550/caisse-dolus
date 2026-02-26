@@ -1,7 +1,7 @@
 /**
  * APPLICATION : Caisse Dolus
  * MISSION : Production-grade, validation sur CA Logiciel vs TVA
- * https://script.google.com/macros/s/AKfycbz7Xvhqd98MGNXI0kUzrNNYJpV7RmDPs18brYPJsmg1t4-Hww3XrUzk79mcg6jQdbP6EA/exec 
+ * https://script.google.com/macros/s/AKfycbz7Xvhqd98MGNXI0kUzrNNYJpV7RmDPs18brYPJsmg1t4-Hww3XrUzk79mcg6jQdbP6EA/exec
  */
 
 const app = {
@@ -92,7 +92,7 @@ const app = {
 
     renderRecaps() {
         document.getElementById('mypos-recap').innerHTML = this.state.mypos.map((amt, idx) => `
-            <div class="recap-item"><span>MyPOS #${idx+1}</span><strong>${amt.toFixed(2)}€</strong><button onclick="app.removeMyPos(${idx})">❌</button></div>
+            <div class="recap-item"><span>Vente MyPOS #${idx+1}</span><strong>${amt.toFixed(2)}€</strong><button onclick="app.removeMyPos(${idx})">❌</button></div>
         `).join('');
         document.getElementById('ancv-recap').innerHTML = this.state.ancv.map((item, idx) => `
             <div class="recap-item"><span>${item.type==='paper'?'📄':'📱'} ${item.qty}x${item.val}€</span><strong>${(item.val*item.qty).toFixed(2)}€</strong><button onclick="app.removeAncv(${idx})">❌</button></div>
@@ -102,19 +102,21 @@ const app = {
         `).join('');
     },
 
-    // --- VALIDATION ET RÉCAPITULATIF FINAL ---
+    // --- RÉCAPITULATIF FINAL DE CONTRÔLE ---
     openRecap() {
         const v = id => parseFloat(document.getElementById(id).textContent) || 0;
         const getIn = id => parseFloat(document.getElementById(id).value) || 0;
 
-        // VALEUR LOGICIEL (Exclusion de MyPOS pour la comparaison TVA)
+        // Données Espèces
+        const cashReel = v('total-cash-net');
         const posCash = getIn('pos-cash');
-        const totalAComparer = v('total-cb') + v('total-tr') + v('total-amex') + 
-                               posCash + v('total-ancv-paper') + v('total-ancv-connect') + v('total-checks');
-        
-        // Total global pour l'archivage (incluant MyPOS)
-        const totalGlobal = totalAComparer + v('total-mypos');
+        const deltaCash = cashReel - posCash;
 
+        // Base de comparaison TVA (Hors MyPOS)
+        const totalPaiementsHorsMypos = v('total-cb') + v('total-tr') + v('total-amex') + 
+                                       posCash + v('total-ancv-paper') + v('total-ancv-connect') + v('total-checks');
+        
+        // TVA
         const tva5 = getIn('tva-5');
         const tva10 = getIn('tva-10');
         const tva20 = getIn('tva-20');
@@ -122,58 +124,61 @@ const app = {
 
         this.currentData = {
             cb: v('total-cb'), tr: v('total-tr'), mypos: v('total-mypos'), amex: v('total-amex'),
-            cashNet: v('total-cash-net'), 
+            cashNet: cashReel, 
             ancvP: v('total-ancv-paper'), ancvC: v('total-ancv-connect'),
             checks: v('total-checks'), 
-            totalReal: totalGlobal,    
+            totalReal: totalPaiementsHorsMypos + v('total-mypos'),
             posCash: posCash,          
-            deltaCash: v('total-cash-net') - posCash, 
+            deltaCash: deltaCash, 
             pizzas: getIn('pos-pizzas'),
             tva5: tva5, tva10: tva10, tva20: tva20
         };
 
-        let linesHtml = "";
-        const lines = [
-            { label: "CB / AMEX", val: v('total-cb') + v('total-amex') },
-            { label: "MyPOS (Hors TVA)", val: v('total-mypos') },
-            { label: "Titres Resto", val: v('total-tr') },
-            { label: "Espèces (Logiciel)", val: posCash },
-            { label: "ANCV", val: v('total-ancv-paper') + v('total-ancv-connect') },
-            { label: "Chèques", val: v('total-checks') }
-        ];
-
-        lines.forEach(line => {
-            if (line.val > 0) {
-                linesHtml += `<div class="recap-row"><span>${line.label} :</span><span>${line.val.toFixed(2)} €</span></div>`;
-            }
-        });
-
+        // Construction du HTML
         let html = `
-            <div style="border-bottom:1px solid #ddd; margin-bottom:10px; padding-bottom:10px; font-size:0.9rem;">
-                ${linesHtml}
+            <div style="font-size:0.85rem; border-bottom:1px solid #eee; margin-bottom:10px; padding-bottom:5px;">
+                <p style="font-weight:bold; color:#666; margin-bottom:5px;">💳 PAIEMENTS LOGICIEL</p>
+                ${v('total-cb') > 0 ? `<div class="recap-row"><span>CB Classique :</span><span>${v('total-cb').toFixed(2)} €</span></div>` : ''}
+                ${v('total-amex') > 0 ? `<div class="recap-row"><span>AMEX :</span><span>${v('total-amex').toFixed(2)} €</span></div>` : ''}
+                ${v('total-tr') > 0 ? `<div class="recap-row"><span>Titres Resto :</span><span>${v('total-tr').toFixed(2)} €</span></div>` : ''}
+                ${v('total-checks') > 0 ? `<div class="recap-row"><span>Chèques :</span><span>${v('total-checks').toFixed(2)} €</span></div>` : ''}
+                ${(v('total-ancv-paper')+v('total-ancv-connect')) > 0 ? `<div class="recap-row"><span>Total ANCV :</span><span>${(v('total-ancv-paper')+v('total-ancv-connect')).toFixed(2)} €</span></div>` : ''}
+                <div class="recap-row"><span>Espèces (Logiciel) :</span><span>${posCash.toFixed(2)} €</span></div>
             </div>
-            <div class="recap-row" style="font-weight:bold; color:#2c3e50;"><span>🧾 BASE TVA LOGICIEL :</span><span>${totalAComparer.toFixed(2)} €</span></div>
-            <div class="recap-row" style="font-weight:bold; color:#2c3e50;"><span>📊 TOTAL TVA :</span><span>${tvaTotal.toFixed(2)} €</span></div>
-            <div class="recap-row" style="font-size:0.8rem; color:#7f8c8d; margin-top:5px;"><span>💰 TOTAL GLOBAL :</span><span>${totalGlobal.toFixed(2)} €</span></div>
+
+            <div style="font-size:0.85rem; border-bottom:1px solid #eee; margin-bottom:10px; padding-bottom:5px;">
+                <p style="font-weight:bold; color:#666; margin-bottom:5px;">💸 ÉCART ESPÈCES</p>
+                <div class="recap-row"><span>Espèces Réelles :</span><span>${cashReel.toFixed(2)} €</span></div>
+                <div class="recap-row" style="color:${deltaCash < 0 ? '#e74c3c' : '#27ae60'}"><span>Différence :</span><strong>${deltaCash.toFixed(2)} €</strong></div>
+            </div>
+
+            <div style="font-size:0.85rem; border-bottom:1px solid #eee; margin-bottom:10px; padding-bottom:5px;">
+                <p style="font-weight:bold; color:#666; margin-bottom:5px;">🧾 VENTILATION TVA</p>
+                <div class="recap-row"><span>TVA 5.5% :</span><span>${tva5.toFixed(2)} €</span></div>
+                <div class="recap-row"><span>TVA 10% :</span><span>${tva10.toFixed(2)} €</span></div>
+                <div class="recap-row"><span>TVA 20% :</span><span>${tva20.toFixed(2)} €</span></div>
+            </div>
+
+            ${v('total-mypos') > 0 ? `<div class="recap-row" style="font-size:0.85rem; color:#9b59b6;"><span>Total MyPOS :</span><strong>${v('total-mypos').toFixed(2)} €</strong></div>` : ''}
+
+            <div class="recap-row" style="font-weight:bold; margin-top:10px; border-top:1px solid #333; padding-top:5px;">
+                <span>TOTAL COMPA :</span><span>${totalPaiementsHorsMypos.toFixed(2)} €</span>
+            </div>
+            <div class="recap-row" style="font-weight:bold;">
+                <span>TOTAL TVA :</span><span>${tvaTotal.toFixed(2)} €</span>
+            </div>
         `;
 
-        const diffTVA = Math.abs(totalAComparer - tvaTotal);
-        const estValide = diffTVA < 0.05; 
-
-        if (!estValide) {
+        const diffTVA = Math.abs(totalPaiementsHorsMypos - tvaTotal);
+        if (diffTVA >= 0.05) {
             html += `
                 <div style="background:#fff3cd; color:#856404; padding:10px; border-radius:8px; margin-top:10px; font-size:0.8rem; border:1px solid #ffeeba;">
-                    ⚠️ L'écart avec la TVA est de <strong>${(totalAComparer - tvaTotal).toFixed(2)}€</strong> (MyPOS exclu).
+                    ⚠️ Erreur : L'encaissé logiciel ne correspond pas à la somme des TVA (écart : ${diffTVA.toFixed(2)}€).
                 </div>
-                <button class="btn-primary" style="width:100%; margin-top:15px; background:#ccc;" disabled>CORRIGER LES TVA</button>
+                <button class="btn-primary" style="width:100%; margin-top:10px; background:#ccc;" disabled>CORRIGER LES CHIFFRES</button>
             `;
         } else {
-            html += `
-                <div style="background:#d4edda; color:#155724; padding:10px; border-radius:8px; margin-top:10px; font-size:0.85rem;">
-                    ✅ Base TVA validée.
-                </div>
-                <button id="btn-sync" class="btn-primary" style="width:100%; margin-top:15px;" onclick="app.sendToGoogleSheet()">💾 ENREGISTRER SUR GOOGLE</button>
-            `;
+            html += `<button id="btn-sync" class="btn-primary" style="width:100%; margin-top:10px;" onclick="app.sendToGoogleSheet()">💾 VALIDER ET ENREGISTRER</button>`;
         }
 
         html += `<p id="sync-status" style="text-align:center; font-size:0.8rem; margin-top:5px;"></p>`;
@@ -193,13 +198,13 @@ const app = {
             body: JSON.stringify(this.currentData)
         })
         .then(() => {
-            status.textContent = "✅ Enregistré dans le Cloud !";
+            status.textContent = "✅ Clôture enregistrée !";
             status.style.color = "green";
             btn.textContent = "✅ ARCHIVÉ";
             btn.style.background = "#27ae60";
         })
         .catch(() => {
-            status.textContent = "❌ Erreur de connexion";
+            status.textContent = "❌ Erreur de réseau";
             btn.disabled = false;
             btn.textContent = "Réessayer";
         });
