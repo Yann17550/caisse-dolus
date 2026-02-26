@@ -1,26 +1,26 @@
 /**
  * APPLICATION : Caisse Dolus
- * MISSION : Production-grade, validation sur CA Logiciel vs TVA
- * https://script.google.com/macros/s/AKfycbz7Xvhqd98MGNXI0kUzrNNYJpV7RmDPs18brYPJsmg1t4-Hww3XrUzk79mcg6jQdbP6EA/exec
- */
-
-/**
- * APPLICATION : Caisse Dolus
- * MISSION : Fond de caisse par défaut à 134€ et gestion des flux
+ * MISSION : Production-grade, validation CA vs TVA, Fond de caisse 134€
+ * OPTIMISATION : Assistant de complétion de caisse & Redirection automatique
  */
 
 const app = {
     state: { ancv: [], checks: [], mypos: [] },
 
     CONFIG: {
-        SCRIPT_URL:"https://script.google.com/macros/s/AKfycbz7Xvhqd98MGNXI0kUzrNNYJpV7RmDPs18brYPJsmg1t4-Hww3XrUzk79mcg6jQdbP6EA/exec",
-        DEFAULT_CASH_OFFSET: 134.00 // Ton fond de caisse habituel
+        SCRIPT_URL: "https://script.google.com/macros/s/AKfycbz7Xvhqd98MGNXI0kUzrNNYJpV7RmDPs18brYPJsmg1t4-Hww3XrUzk79mcg6jQdbP6EA/exec",
+        DEFAULT_CASH_OFFSET: 134.00,
+        // Ta configuration cible pour le fond de caisse de 134€
+        IDEAL_CASH: {
+            20: 2, 10: 4, 5: 4,     // Billets
+            2: 10, 1: 10, 0.5: 5,   // Pièces
+            0.2: 5, 0.1: 5          // Pièces
+        }
     },
 
     init() {
         this.renderCashGrid();
         this.loadFromStorage();
-        // Si après chargement le champ est vide, on met la valeur par défaut
         const offsetInput = document.getElementById('cash-offset');
         if (!offsetInput.value) offsetInput.value = this.CONFIG.DEFAULT_CASH_OFFSET;
         
@@ -30,7 +30,8 @@ const app = {
 
     showView(viewId) {
         document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
-        document.getElementById(viewId).classList.remove('hidden');
+        const targetView = document.getElementById(viewId);
+        if (targetView) targetView.classList.remove('hidden');
         window.scrollTo(0,0);
         this.saveToStorage();
     },
@@ -83,8 +84,6 @@ const app = {
         });
 
         const offset = parseFloat(document.getElementById('cash-offset').value) || 0;
-        
-        // Espèces Net : 0 si rien compté, sinon Brut - Fond de caisse
         const net = hasInputCash ? (brut - offset) : 0;
 
         document.getElementById('total-cash-brut').textContent = brut.toFixed(2);
@@ -122,12 +121,21 @@ const app = {
         const tvaTotal = getIn('tva-5') + getIn('tva-10') + getIn('tva-20');
         const deltaCash = cashCompte - posCashLogiciel;
 
+        // Préparation des données pour le Sheet (AMEX supprimé selon demande)
         this.currentData = {
-            cb: totalCB_Amex, tr: totalTR, mypos: myPosTotal,
-            cashNet: cashCompte, ancvP: v('total-ancv-paper'), ancvC: v('total-ancv-connect'),
-            checks: totalChecks, totalReal: sommePaiementsLogiciel + myPosTotal,
-            posCash: posCashLogiciel, deltaCash: deltaCash,
-            tva5: getIn('tva-5'), tva10: getIn('tva-10'), tva20: getIn('tva-20'),
+            cb: totalCB_Amex, 
+            tr: totalTR, 
+            mypos: myPosTotal,
+            cashNet: cashCompte, 
+            ancvP: v('total-ancv-paper'), 
+            ancvC: v('total-ancv-connect'),
+            checks: totalChecks, 
+            totalReal: sommePaiementsLogiciel + myPosTotal,
+            posCash: posCashLogiciel, 
+            deltaCash: deltaCash,
+            tva5: getIn('tva-5'), 
+            tva10: getIn('tva-10'), 
+            tva20: getIn('tva-20'),
             pizzas: getIn('pos-pizzas')
         };
 
@@ -169,26 +177,83 @@ const app = {
         document.getElementById('modal-recap').classList.remove('hidden');
     },
 
+    // --- ENVOI ET CALCUL DU COMPLÉMENT DE CAISSE ---
     sendToGoogleSheet() {
         const btn = document.getElementById('btn-sync');
-        btn.disabled = true; btn.textContent = "🚀 Archivage...";
-        fetch(this.CONFIG.SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(this.currentData) })
+        btn.disabled = true; 
+        btn.textContent = "🚀 Archivage...";
+
+        // Calcul des manques pour le fond de caisse avant réinitialisation
+        const instructionsAjout = this.calculateCashShortage();
+
+        fetch(this.CONFIG.SCRIPT_URL, { 
+            method: 'POST', 
+            mode: 'no-cors', 
+            body: JSON.stringify(this.currentData) 
+        })
         .then(() => { 
             btn.textContent = "✅ ENREGISTRÉ"; 
             setTimeout(() => {
                 this.resetAllData();
                 this.closeRecap();
-                alert("Clôture réussie ! Données réinitialisées.");
-                this.showView('view-home');
-            }, 1500);
+                
+                // Afficher le modal d'appoint de caisse
+                this.showShortageModal(instructionsAjout);
+                
+                // Rediriger vers la vue Cartes Bancaires (view-cb)
+                this.showView('view-cb'); 
+            }, 1000);
         })
-        .catch(() => { alert("Erreur de connexion."); btn.disabled = false; btn.textContent = "Réessayer"; });
+        .catch(() => { 
+            alert("Erreur de connexion."); 
+            btn.disabled = false; 
+            btn.textContent = "Réessayer"; 
+        });
+    },
+
+    calculateCashShortage() {
+        const currentIn = {};
+        document.querySelectorAll('.cash-in').forEach(input => {
+            const unit = input.dataset.unit;
+            currentIn[unit] = parseInt(input.value) || 0;
+        });
+
+        let html = "";
+        const units = [20, 10, 5, 2, 1, 0.5, 0.2, 0.1];
+
+        units.forEach(u => {
+            const dispo = currentIn[u] || 0;
+            const cible = this.CONFIG.IDEAL_CASH[u];
+            const manque = cible - dispo;
+
+            if (manque > 0) {
+                html += `
+                    <div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #eee;">
+                        <span>${u >= 5 ? 'Billet' : 'Pièce'} de <b>${u}€</b></span>
+                        <span style="color:#d32f2f; font-weight:bold;">Ajouter ${manque}</span>
+                    </div>`;
+            }
+        });
+        return html || "<p style='text-align:center;'>Fond de caisse déjà complet !</p>";
+    },
+
+    showShortageModal(content) {
+        const modalHtml = `
+            <div id="modal-fond" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); display:flex; align-items:center; justify-content:center; z-index:9999; padding:20px;">
+                <div style="background:white; padding:20px; border-radius:12px; width:100%; max-width:350px; border-top:6px solid #2ecc71;">
+                    <h3 style="margin:0 0 10px 0; color:#2c3e50;">🏁 Archivage réussi !</h3>
+                    <p style="font-size:0.85rem; color:#666; margin-bottom:15px;">Pour le fond de caisse de demain (134€), merci d'ajouter :</p>
+                    <div style="margin-bottom:20px;">${content}</div>
+                    <button class="btn-primary" onclick="this.closest('#modal-fond').remove()" style="width:100%; padding:15px; background:#2ecc71; border:none; color:white; border-radius:8px; font-weight:bold; cursor:pointer;">C'EST FAIT, PRÊT !</button>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
     },
 
     resetAllData() {
         this.state = { ancv: [], checks: [], mypos: [] };
         document.querySelectorAll('input').forEach(input => {
-            // Pour le fond de caisse, on remet la valeur par défaut au lieu de vider
             if (input.id === 'cash-offset') {
                 input.value = this.CONFIG.DEFAULT_CASH_OFFSET;
             } else if (input.type === 'number' || input.type === 'text') {
