@@ -158,7 +158,7 @@ const app = {
         const btn = document.getElementById('btn-sync');
         const status = document.getElementById('sync-status');
         
-        if (this.CONFIG.SCRIPT_URL.includes("ton_url")) {
+        if (this.CONFIG.SCRIPT_URL.includes("TON_URL")) {
             alert("Erreur : Configure l'URL Google Apps Script dans app.js");
             return;
         }
