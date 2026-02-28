@@ -133,56 +133,69 @@ const app = {
         document.getElementById('checks-recap').innerHTML = this.state.checks.map((amt, idx) => `<div class="recap-item"><span>Chèque #${idx+1}</span><strong>${amt.toFixed(2)}€</strong><button onclick="app.removeCheck(${idx})">❌</button></div>`).join('');
     },
 
-    openRecap() {
-        const v = id => parseFloat(document.getElementById(id).textContent) || 0;
-        const getIn = id => parseFloat(document.getElementById(id).value) || 0;
+openRecap() {
+    const v = id => parseFloat(document.getElementById(id).textContent) || 0;
+    const getIn = id => parseFloat(document.getElementById(id).value) || 0;
 
-        const totalCB_Amex = v('total-cb') + v('total-amex');
-        const cashCompte = v('total-cash-net'); 
-        const totalANCV = v('total-ancv-paper') + v('total-ancv-connect');
-        const totalChecks = v('total-checks');
-        const totalTR = v('total-tr');
-        const myPosTotal = v('total-mypos');
-        
-        const posCashLogiciel = getIn('pos-cash');
-        const sommePaiementsLogiciel = totalCB_Amex + totalTR + totalANCV + totalChecks + posCashLogiciel;
-        
-        const tvaTotal = getIn('tva-5') + getIn('tva-10') + getIn('tva-20');
-        const deltaCash = cashCompte - posCashLogiciel;
+    const totalCB_Amex = v('total-cb') + v('total-amex');
+    const cashCompte = v('total-cash-net'); 
+    const totalANCV_P = v('total-ancv-paper');
+    const totalANCV_C = v('total-ancv-connect');
+    const totalChecks = v('total-checks');
+    const totalTR = v('total-tr');
+    const myPosTotal = v('total-mypos');
+    
+    const posCashLogiciel = getIn('pos-cash');
+    // Le total logiciel inclut tout sauf MyPos (qui est à part)
+    const sommePaiementsLogiciel = totalCB_Amex + totalTR + totalANCV_P + totalANCV_C + totalChecks + posCashLogiciel;
+    
+    const tvaTotal = getIn('tva-5') + getIn('tva-10') + getIn('tva-20');
+    const deltaCash = cashCompte - posCashLogiciel;
 
-        this.currentData = {
-            cb: totalCB_Amex, tr: totalTR, mypos: myPosTotal,
-            cashNet: cashCompte, ancvP: v('total-ancv-paper'), ancvC: v('total-ancv-connect'),
-            checks: totalChecks, totalReal: sommePaiementsLogiciel + myPosTotal,
-            posCash: posCashLogiciel, deltaCash: deltaCash,
-            tva5: getIn('tva-5'), tva10: getIn('tva-10'), tva20: getIn('tva-20'),
-            pizzas: getIn('pos-pizzas')
-        };
+    this.currentData = {
+        cb: totalCB_Amex, tr: totalTR, mypos: myPosTotal,
+        cashNet: cashCompte, ancvP: totalANCV_P, ancvC: totalANCV_C,
+        checks: totalChecks, totalReal: sommePaiementsLogiciel + myPosTotal,
+        posCash: posCashLogiciel, deltaCash: deltaCash,
+        tva5: getIn('tva-5'), tva10: getIn('tva-10'), tva20: getIn('tva-20'),
+        pizzas: getIn('pos-pizzas')
+    };
 
-        let html = `
-            <div style="font-size:0.9rem; border-bottom:1px solid #ddd; padding-bottom:10px; margin-bottom:10px;">
-                <p style="font-weight:bold; color:#2c3e50; margin-bottom:5px; text-decoration:underline;">POINTAGE PHYSIQUE (RÉEL)</p>
-                <div class="recap-row"><span>CB (Banque + Amex) :</span><strong>${totalCB_Amex.toFixed(2)} €</strong></div>
-                <div class="recap-row"><span>Espèces Net :</span><strong>${cashCompte.toFixed(2)} €</strong></div>
-                <div class="recap-row"><span>CB Ticket Resto :</span><strong>${totalTR.toFixed(2)} €</strong></div>
-                <div class="recap-row"><span>Total Chèques :</span><strong>${totalChecks.toFixed(2)} €</strong></div>
-            </div>
-            <div style="background:#fff3cd; color:#856404; padding:10px; border-radius:8px; margin-bottom:10px; font-size:0.85rem; border:1px solid #ffeeba;">
-                <div class="recap-row"><span>⚠️ Écart Espèces :</span><strong>${deltaCash.toFixed(2)} €</strong></div>
-            </div>
-            <div class="recap-row" style="font-weight:bold; margin-top:5px;"><span>SOMME LOGICIEL :</span><span>${sommePaiementsLogiciel.toFixed(2)} €</span></div>
-        `;
+    // Début du HTML
+    let html = `
+        <div style="font-size:0.9rem; border-bottom:1px solid #ddd; padding-bottom:10px; margin-bottom:10px;">
+            <p style="font-weight:bold; color:#2c3e50; margin-bottom:5px; text-decoration:underline;">POINTAGE PHYSIQUE (RÉEL)</p>`;
 
-        const diffTVA = Math.abs(sommePaiementsLogiciel - tvaTotal);
-        if (diffTVA >= 0.05) {
-            html += `<div style="background:#f8d7da; color:#721c24; padding:8px; border-radius:5px; margin-top:10px; font-size:0.8rem;">❌ Écart TVA détecté.</div>`;
-        } else {
-            html += `<button id="btn-sync" class="btn-primary" style="width:100%; margin-top:15px;" onclick="app.sendToGoogleSheet()">💾 VALIDER ET ARCHIVER</button>`;
-        }
+    // Affichage conditionnel des lignes (uniquement si > 0)
+    if (totalCB_Amex > 0) html += `<div class="recap-row"><span>CB (Banque + Amex) :</span><strong>${totalCB_Amex.toFixed(2)} €</strong></div>`;
+    if (cashCompte !== 0) html += `<div class="recap-row"><span>Espèces Net :</span><strong>${cashCompte.toFixed(2)} €</strong></div>`;
+    if (totalTR > 0) html += `<div class="recap-row"><span>CB Ticket Resto :</span><strong>${totalTR.toFixed(2)} €</strong></div>`;
+    if (totalANCV_P > 0) html += `<div class="recap-row"><span>ANCV Papier :</span><strong>${totalANCV_P.toFixed(2)} €</strong></div>`;
+    if (totalANCV_C > 0) html += `<div class="recap-row"><span>ANCV Connect :</span><strong>${totalANCV_C.toFixed(2)} €</strong></div>`;
+    if (totalChecks > 0) html += `<div class="recap-row"><span>Total Chèques :</span><strong>${totalChecks.toFixed(2)} €</strong></div>`;
+    if (myPosTotal > 0) html += `<div class="recap-row"><span>Ventes MyPos :</span><strong>${myPosTotal.toFixed(2)} €</strong></div>`;
 
-        document.getElementById('recap-body').innerHTML = html;
-        document.getElementById('modal-recap').classList.remove('hidden');
-    },
+    html += `</div>`; // Fin du bloc pointage
+
+    // Bloc Écart Espèces
+    html += `
+        <div style="background:#fff3cd; color:#856404; padding:10px; border-radius:8px; margin-bottom:10px; font-size:0.85rem; border:1px solid #ffeeba;">
+            <div class="recap-row"><span>⚠️ Écart Espèces :</span><strong>${deltaCash.toFixed(2)} €</strong></div>
+        </div>
+        <div class="recap-row" style="font-weight:bold; margin-top:5px;"><span>SOMME LOGICIEL :</span><span>${sommePaiementsLogiciel.toFixed(2)} €</span></div>
+    `;
+
+    // Validation TVA
+    const diffTVA = Math.abs(sommePaiementsLogiciel - tvaTotal);
+    if (diffTVA >= 0.05) {
+        html += `<div style="background:#f8d7da; color:#721c24; padding:8px; border-radius:5px; margin-top:10px; font-size:0.8rem;">❌ Écart TVA détecté (${sommePaiementsLogiciel.toFixed(2)}€ vs ${tvaTotal.toFixed(2)}€)</div>`;
+    } else {
+        html += `<button id="btn-sync" class="btn-primary" style="width:100%; margin-top:15px;" onclick="app.sendToGoogleSheet()">💾 VALIDER ET ARCHIVER</button>`;
+    }
+
+    document.getElementById('recap-body').innerHTML = html;
+    document.getElementById('modal-recap').classList.remove('hidden');
+},
 
     sendToGoogleSheet() {
         const btn = document.getElementById('btn-sync');
