@@ -78,21 +78,41 @@ input, select {
 }
 
 /* ==========================================================
-   🗺️ GRILLES & DISPOSITION (Cash & ANCV)
+    🗺️ GRILLES & DISPOSITION (Cash & ANCV)
    ========================================================== */
-/* Grille pour les billets et pièces */
+
+/* Conteneur principal : on passe en flex pour mettre les colonnes côte à côte */
 .cash-grid { 
-    display: grid; 
-    grid-template-columns: 1fr 1fr; /* 2 colonnes */
-    gap: 8px; 
-    margin-top: 10px; 
+    display: flex; 
+    gap: 12px; 
+    align-items: flex-start;
+    margin-top: 10px;
 }
 
+/* Nouvelle sous-section : Définit chaque colonne (Billets vs Pièces) */
+.cash-column { 
+    flex: 1; /* Les deux colonnes auront la même largeur (50/50) */
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* Style des items (individuel pour chaque billet/pièce) */
 .cash-item { 
     background: #fdfdfd; 
     padding: 8px; 
     border-radius: 8px; 
-    border: 1px solid #eee; 
+    border: 1px solid #eee;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Petit réglage pour les étiquettes (ex: 20€) à l'intérieur des items */
+.cash-item label {
+    font-size: 0.75rem;
+    font-weight: bold;
+    color: var(--primary);
+    margin-bottom: 2px;
 }
 
 /* Sélecteur de type ANCV (Papier/Connect) */
