@@ -27,22 +27,42 @@ const app = {
     },
 
     // Génération de la grille avec valeurs par défaut (Vesuvio Style)
-    renderCashGrid() {
-        const units = [100, 50, 20, 10, 5, 2, 1, 0.5, 0.2, 0.1];
-        const container = document.getElementById('cash-grid');
-        if (!container) return;
+renderCashGrid() {
+    // Listes séparées pour la structure
+    const bills = [100, 50, 20, 10, 5];
+    const coins = [2, 1, 0.5, 0.2, 0.1];
+    
+    const container = document.getElementById('cash-grid');
+    if (!container) return;
 
-        container.innerHTML = units.map(u => {
-            let def = this.CONFIG.IDEAL_CASH[u] || "";
-            return `
-                <div class="cash-item">
-                    <label>${u}€</label>
-                    <input type="number" class="cash-in" data-unit="${u}" value="${def}"
-                        onfocus="if(this.value=='${def}') this.value='';" 
-                        onblur="if(this.value=='') this.value='${def}'; app.refreshUI();">
-                </div>`;
-        }).join('');
-    },
+    // Sous-fonction interne : On garde TOUTES les fonctionnalités (onfocus, onblur, inputmode)
+    const generateItemHTML = (u) => {
+        let def = this.CONFIG.IDEAL_CASH[u] || "";
+        return `
+            <div class="cash-item">
+                <label>${u}€</label>
+                <input type="number" 
+                       class="cash-in" 
+                       data-unit="${u}" 
+                       value="${def}"
+                       inputmode="numeric"
+                       onfocus="if(this.value=='${def}') this.value='';" 
+                       onblur="if(this.value=='') this.value='${def}'; app.refreshUI();">
+            </div>`;
+    };
+
+    // Injection du HTML avec titres et colonnes
+    container.innerHTML = `
+        <div class="cash-column">
+            <h3 style="font-size: 0.75rem; text-transform: uppercase; text-align: center; color: var(--primary); margin-bottom: 8px;">Billets</h3>
+            ${bills.map(u => generateItemHTML(u)).join('')}
+        </div>
+        <div class="cash-column">
+            <h3 style="font-size: 0.75rem; text-transform: uppercase; text-align: center; color: var(--primary); margin-bottom: 8px;">Pièces</h3>
+            ${coins.map(u => generateItemHTML(u)).join('')}
+        </div>
+    `;
+}
 
     // --- GESTION DES VUES ---
     showView(viewId) {
