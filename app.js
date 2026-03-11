@@ -62,7 +62,7 @@ renderCashGrid() {
             ${coins.map(u => generateItemHTML(u)).join('')}
         </div>
     `;
-}
+},
 
     // --- GESTION DES VUES ---
     showView(viewId) {
