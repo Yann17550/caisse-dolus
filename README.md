@@ -82,3 +82,22 @@ L'application utilise deux types de fenêtres surgissantes pour sécuriser l'arc
 * **Construction** : Cette modale est "éphémère". Elle est créée dynamiquement en JavaScript après la réponse du serveur.
 * **Rôle** : Elle affiche la liste précise des pièces et billets à ajouter pour reconstituer exactement le **fond de caisse de 134€** pour le lendemain.
 * **Action** : Le bouton "C'EST FAIT !" ferme la modale et réinitialise l'application pour le jour suivant (`resetAllData`).
+
+## 🎨 Guide de l'Interface (Design System)
+
+L'aspect visuel de l'application est géré par `style.css` et repose sur des variables pour une maintenance facile.
+
+### 🛡️ Couleurs de référence
+* **Identité principale** : Bleu nuit (`--primary`) utilisé pour les titres et la navigation.
+* **Alertes** : Rouge (`--danger`) pour les suppressions et vert (`--success`) pour l'archivage réussi.
+* **Marque** : Un bleu spécifique (`--amex`) identifie visuellement la section American Express.
+
+### 📐 Mise en page (Layout)
+* **Mode Mobile First** : L'interface est optimisée pour l'usage à une main sur smartphone.
+* **Système de "Cartes"** : Chaque bloc de saisie est isolé dans une `.card-section` blanche avec une légère ombre pour une meilleure lisibilité.
+* **Grille d'Espèces** : Utilise un `display: grid` en 2 colonnes pour maximiser l'espace vertical sur les petits écrans.
+
+### 👁️ Retours Visuels (États)
+* **Mode Sombre (Modale)** : Les récapitulatifs utilisent un overlay de `0.85` d'opacité pour détacher les chiffres du reste de l'application.
+* **Navigation Active** : La barre de navigation est fixée en bas (`position: fixed`) pour être accessible en permanence avec le pouce.
+* **Mise en évidence** : La classe `.highlight` passe le fond en vert clair pour signaler que le calcul du "Total Net" est prêt.
