@@ -72,12 +72,21 @@ renderCashGrid() {
 },
 
     // --- GESTION DES VUES ---
-    showView(viewId) {
-        document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
-        const target = document.getElementById(viewId);
-        if (target) target.classList.remove('hidden');
-        window.scrollTo(0,0);
-    },
+        showView(viewId) {
+            // Cache toutes les vues
+            document.querySelectorAll('.view').forEach(v => {
+                v.classList.add('hidden');
+                v.style.display = 'none'; 
+            });
+            
+            // Affiche la cible
+            const target = document.getElementById(viewId);
+            if (target) {
+                target.classList.remove('hidden');
+                target.style.display = 'block';
+                window.scrollTo(0,0);
+            }
+        },
 
     // --- LOGIQUE DES LISTES (ANCV, Chèques, MyPos) ---
     addAncv() {
