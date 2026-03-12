@@ -10,7 +10,7 @@ const app = {
         SCRIPT_URL: "https://script.google.com/macros/s/AKfycbz7Xvhqd98MGNXI0kUzrNNYJpV7RmDPs18brYPJsmg1t4-Hww3XrUzk79mcg6jQdbP6EA/exec",
         DEFAULT_CASH_OFFSET: 134.00,
         IDEAL_CASH: {
-            20: 2, 10: 4, 5: 4,     // Billets
+            20: 2, 10: 4, 5: 4,      // Billets
             2: 10, 1: 10, 0.5: 5,   // Pièces
             0.2: 5, 0.1: 5          // Pièces
         }
@@ -34,95 +34,98 @@ const app = {
     },
 
     // Génération de la grille avec valeurs par défaut (Vesuvio Style)
-renderCashGrid() {
-    // Listes séparées pour la structure
-    const bills = [100, 50, 20, 10, 5];
-    const coins = [2, 1, 0.5, 0.2, 0.1];
-    
-    const container = document.getElementById('cash-grid');
-    if (!container) return;
+    renderCashGrid() {
+        const bills = [100, 50, 20, 10, 5];
+        const coins = [2, 1, 0.5, 0.2, 0.1];
+        
+        const container = document.getElementById('cash-grid');
+        if (!container) return;
 
-    // Sous-fonction interne : On garde TOUTES les fonctionnalités (onfocus, onblur, inputmode)
-    const generateItemHTML = (u) => {
-        let def = this.CONFIG.IDEAL_CASH[u] || "";
-        return `
-            <div class="cash-item">
-                <label>${u}€</label>
-                <input type="number" 
-                       class="cash-in" 
-                       data-unit="${u}" 
-                       value="${def}"
-                       inputmode="numeric"
-                       onfocus="if(this.value=='${def}') this.value='';" 
-                       onblur="if(this.value=='') this.value='${def}'; app.refreshUI();">
-            </div>`;
-    };
+        const generateItemHTML = (u) => {
+            let def = this.CONFIG.IDEAL_CASH[u] || "";
+            return `
+                <div class="cash-item">
+                    <label>${u}€</label>
+                    <input type="number" 
+                           class="cash-in" 
+                           data-unit="${u}" 
+                           value="${def}"
+                           inputmode="numeric"
+                           onfocus="if(this.value=='${def}') this.value='';" 
+                           onblur="if(this.value=='') this.value='${def}'; app.refreshUI();">
+                </div>`;
+        };
 
-    // Injection du HTML avec titres et colonnes
-    container.innerHTML = `
-        <div class="cash-column">
-            <h3 style="font-size: 0.75rem; text-transform: uppercase; text-align: center; color: var(--primary); margin-bottom: 8px;">Billets</h3>
-            ${bills.map(u => generateItemHTML(u)).join('')}
-        </div>
-        <div class="cash-column">
-            <h3 style="font-size: 0.75rem; text-transform: uppercase; text-align: center; color: var(--primary); margin-bottom: 8px;">Pièces</h3>
-            ${coins.map(u => generateItemHTML(u)).join('')}
-        </div>
-    `;
-},
+        container.innerHTML = `
+            <div class="cash-column">
+                <h3 style="font-size: 0.75rem; text-transform: uppercase; text-align: center; color: var(--primary); margin-bottom: 8px;">Billets</h3>
+                ${bills.map(u => generateItemHTML(u)).join('')}
+            </div>
+            <div class="cash-column">
+                <h3 style="font-size: 0.75rem; text-transform: uppercase; text-align: center; color: var(--primary); margin-bottom: 8px;">Pièces</h3>
+                ${coins.map(u => generateItemHTML(u)).join('')}
+            </div>
+        `;
+    },
 
-
-        showView(viewId) {
-            // Cache toutes les vues
-            document.querySelectorAll('.view').forEach(v => {
-                v.classList.add('hidden');
-                v.style.display = 'none'; 
-            });
-            
-            // Affiche la cible
-            const target = document.getElementById(viewId);
-            if (target) {
-                target.classList.remove('hidden');
-                target.style.display = 'block';
-                window.scrollTo(0,0);
-            }
-        },
+    // --- GESTION DES VUES ---
+    showView(viewId) {
+        document.querySelectorAll('.view').forEach(v => {
+            v.classList.add('hidden');
+            v.style.display = 'none'; 
+        });
+        
+        const target = document.getElementById(viewId);
+        if (target) {
+            target.classList.remove('hidden');
+            target.style.display = 'block';
+            window.scrollTo(0,0);
+        }
+    },
 
     // --- LOGIQUE DES LISTES (ANCV, Chèques, MyPos) ---
     addAncv() {
-        const val = parseFloat(document.getElementById('ancv-val').value);
-        const qty = parseInt(document.getElementById('ancv-qty').value) || 0;
-        const type = document.querySelector('input[name="ancv-type"]:checked').value;
+        const valInput = document.getElementById('ancv-val');
+        const qtyInput = document.getElementById('ancv-qty');
+        const typeSelected = document.querySelector('input[name="ancv-type"]:checked');
+
+        if (!typeSelected) return;
+
+        const val = parseFloat(valInput.value);
+        const qty = parseInt(qtyInput.value) || 0;
+        const type = typeSelected.value;
+
         if (qty > 0) { 
             this.state.ancv.push({ val, qty, type }); 
-            document.getElementById('ancv-qty').value = ''; 
+            qtyInput.value = ''; 
             this.refreshUI(); 
         }
     },
+
     removeAncv(idx) { this.state.ancv.splice(idx, 1); this.refreshUI(); },
 
     addCheck() {
         const amt = parseFloat(document.getElementById('check-amount').value) || 0;
         if (amt > 0) { this.state.checks.push(amt); document.getElementById('check-amount').value = ''; this.refreshUI(); }
     },
+
     removeCheck(idx) { this.state.checks.splice(idx, 1); this.refreshUI(); },
 
     addMyPos() {
         const amt = parseFloat(document.getElementById('mypos-amount').value) || 0;
         if (amt > 0) { this.state.mypos.push(amt); document.getElementById('mypos-amount').value = ''; this.refreshUI(); }
     },
+
     removeMyPos(idx) { this.state.mypos.splice(idx, 1); this.refreshUI(); },
 
     // --- CALCULS ET MISE À JOUR UI ---
     refreshUI() {
         const getSum = (id1, id2) => (parseFloat(document.getElementById(id1)?.value) || 0) + (parseFloat(document.getElementById(id2)?.value) || 0);
         
-        // Cartes & TR
         document.getElementById('total-cb').textContent = getSum('cb-contact', 'cb-sans-contact').toFixed(2);
         document.getElementById('total-tr').textContent = getSum('tr-contact', 'tr-sans-contact').toFixed(2);
         document.getElementById('total-amex').textContent = getSum('amex-contact', 'amex-sans-contact').toFixed(2);
 
-        // Espèces
         let brut = 0;
         document.querySelectorAll('.cash-in').forEach(i => {
             brut += (parseFloat(i.dataset.unit) * (parseInt(i.value) || 0));
@@ -132,7 +135,6 @@ renderCashGrid() {
         document.getElementById('total-cash-brut').textContent = brut.toFixed(2);
         document.getElementById('total-cash-net').textContent = (brut - offset).toFixed(2);
 
-        // Totaux Listes
         document.getElementById('total-ancv-paper').textContent = this.state.ancv.filter(i=>i.type==='paper').reduce((a,b)=>a+(b.val*b.qty),0).toFixed(2);
         document.getElementById('total-ancv-connect').textContent = this.state.ancv.filter(i=>i.type==='connect').reduce((a,b)=>a+(b.val*b.qty),0).toFixed(2);
         document.getElementById('total-checks').textContent = this.state.checks.reduce((a, b) => a + b, 0).toFixed(2);
@@ -149,81 +151,68 @@ renderCashGrid() {
     },
 
     // --- RÉCAPITULATIF FINAL ---
-openRecap() {
-    const v = id => parseFloat(document.getElementById(id).textContent) || 0;
-    const getIn = id => parseFloat(document.getElementById(id).value) || 0;
-    
-    // RÉCUPÉRATION DE LA DATE
-    const dateService = document.getElementById('service-date').value;
-    if(!dateService) {
-        alert("⚠️ ATTENTION : Veuillez sélectionner la date du service !");
-        this.showView('view-pos');
-        return;
-    }
-
-    const totalCB_Amex = v('total-cb') + v('total-amex');
-    const cashCompte = v('total-cash-net');
-    const posCashLogiciel = getIn('pos-cash');
-    const sommePaiementsLogiciel = totalCB_Amex + v('total-tr') + v('total-ancv-paper') + v('total-ancv-connect') + v('total-checks') + posCashLogiciel;
-    
-    const tvaTotal = getIn('tva-5') + getIn('tva-10') + getIn('tva-20');
-    const deltaCash = cashCompte - posCashLogiciel;
-    
-    const tva5 = getIn('tva-5');
-    const tva10 = getIn('tva-10');
-    const tva20 = getIn('tva-20');
-    const tvaTotal = tva5 + tva10 + tva20;
-
-    // MISE À JOUR DU DATA (On ajoute dateCustom)
-    this.currentData = {
-        dateCustom: dateService, // <-- TRÈS IMPORTANT pour ton AppScript
-        cb: totalCB_Amex, 
-        tr: v('total-tr'), 
-        mypos: v('total-mypos'),
-        cashNet: cashCompte, 
-        ancvP: v('total-ancv-paper'), 
-        ancvC: v('total-ancv-connect'),
-        checks: v('total-checks'), 
-        caTotal: sommePaiementsLogiciel,
-        posCash: posCashLogiciel, 
-        deltaCash: deltaCash,
-        tva5: tva5), 
-        tva10: tva10,
-        tva20: tva20,
-        pizzas_e: getIn('pos-pizzas')
-    };
-
-    // AFFICHAGE DANS LA MODALE (On montre la date pour vérification)
-    let html = `<div class="recap-content">
-        <p style="text-align:center; background:#eee; padding:5px; border-radius:5px;"><b>📅 SERVICE DU : ${dateService.split('-').reverse().join('/')}</b></p>
+    openRecap() {
+        const v = id => parseFloat(document.getElementById(id).textContent) || 0;
+        const getIn = id => parseFloat(document.getElementById(id).value) || 0;
         
-        <p><b>POINTAGE RÉEL :</b></p>
-        <div class="recap-row"><span>Espèces Net : </span><strong>${cashCompte.toFixed(2)} €</strong></div>
-        <div class="recap-row"><span>Espèces Addition : </span><strong>${posCashLogiciel.toFixed(2)} €</strong></div>
-        <div class="recap-row"><span>CB Total : </span><strong>${totalCB_Amex.toFixed(2)} €</strong></div>
-        <div class="recap-row"><span>CB Ticket Resto : </span><strong>${v('total-tr').toFixed(2)} €</strong></div>
-        <div class="recap-row"><span>ANCV Papier : </span><strong>${v('total-ancv-paper').toFixed(2)} €</strong></div>
-        <div class="recap-row"><span>ANCV Connect : </span><strong>${v('total-ancv-connect').toFixed(2)} €</strong></div>
-        <div class="recap-row"><span>Chèques : </span><strong>${v('total-checks').toFixed(2)} €</strong></div>
-        <hr>
-        <div class="recap-row" style="background:#fff3cd; padding:5px;"><span>⚠️ Écart Espèces : </span><strong>${deltaCash.toFixed(2)} €</strong></div>
-        <div class="recap-row"><span>MyPos : </span><strong>${v('total-mypos').toFixed(2)} €</strong></div>
-        <hr>
-        <p><b>LOGICIEL :</b> ${sommePaiementsLogiciel.toFixed(2)} €</p>
-        <div class="recap-row"><span>TVA  5,5 % : </span><strong>${v('tva5').toFixed(2)} €</strong></div>
-        <div class="recap-row"><span>TVA 10,0 % : </span><strong>${v('tva10').toFixed(2)} €</strong></div>
-        <div class="recap-row"><span>TVA 20,0 % : </span><strong>${v('tva20').toFixed(2)} €</strong></div>
-    </div>`;
+        const dateService = document.getElementById('service-date').value;
+        if(!dateService) {
+            alert("⚠️ ATTENTION : Veuillez sélectionner la date du service !");
+            this.showView('view-pos');
+            return;
+        }
 
-    if (Math.abs(sommePaiementsLogiciel - tvaTotal) >= 0.1) {
-        html += `<p style="color:red; text-align:center; font-weight:bold;">❌ Erreur TVA (${tvaTotal.toFixed(2)}€)<br>Vérifiez vos saisies !</p>`;
-    } else {
-        html += `<button id="btn-sync" class="btn-primary" style="width:100%; background:var(--success); height:50px; font-size:1.1rem;" onclick="app.sendToGoogleSheet()">💾 ARCHIVER LE SERVICE</button>`;
-    }
+        const totalCB_Amex = v('total-cb') + v('total-amex');
+        const cashCompte = v('total-cash-net');
+        const posCashLogiciel = getIn('pos-cash');
+        const sommePaiementsLogiciel = totalCB_Amex + v('total-tr') + v('total-ancv-paper') + v('total-ancv-connect') + v('total-checks') + posCashLogiciel;
+        
+        const tva5 = getIn('tva-5');
+        const tva10 = getIn('tva-10');
+        const tva20 = getIn('tva-20');
+        const tvaTotal = tva5 + tva10 + tva20; // Corrigé : suppression de la double déclaration "const"
 
-    document.getElementById('recap-body').innerHTML = html;
-    document.getElementById('modal-recap').classList.remove('hidden');
-},
+        const deltaCash = cashCompte - posCashLogiciel;
+
+        this.currentData = {
+            dateCustom: dateService,
+            cb: totalCB_Amex, 
+            tr: v('total-tr'), 
+            mypos: v('total-mypos'),
+            cashNet: cashCompte, 
+            ancvP: v('total-ancv-paper'), 
+            ancvC: v('total-ancv-connect'),
+            checks: v('total-checks'), 
+            caTotal: sommePaiementsLogiciel,
+            posCash: posCashLogiciel, 
+            deltaCash: deltaCash,
+            tva5: tva5, 
+            tva10: tva10, 
+            tva20: tva20,
+            pizzas_e: getIn('pos-pizzas')
+        };
+
+        let html = `<div class="recap-content">
+            <p style="text-align:center; background:#eee; padding:5px; border-radius:5px;"><b>📅 SERVICE DU : ${dateService.split('-').reverse().join('/')}</b></p>
+            <p><b>POINTAGE RÉEL :</b></p>
+            <div class="recap-row"><span>Espèces Net : </span><strong>${cashCompte.toFixed(2)} €</strong></div>
+            <div class="recap-row"><span>CB Total : </span><strong>${totalCB_Amex.toFixed(2)} €</strong></div>
+            <div class="recap-row"><span>ANCV : </span><strong>${(v('total-ancv-paper') + v('total-ancv-connect')).toFixed(2)} €</strong></div>
+            <hr>
+            <div class="recap-row" style="background:#fff3cd; padding:5px;"><span>⚠️ Écart Espèces : </span><strong>${deltaCash.toFixed(2)} €</strong></div>
+            <hr>
+            <p><b>LOGICIEL :</b> ${sommePaiementsLogiciel.toFixed(2)} €</p>
+        </div>`;
+
+        if (Math.abs(sommePaiementsLogiciel - tvaTotal) >= 0.1) {
+            html += `<p style="color:red; text-align:center; font-weight:bold;">❌ Erreur TVA (${tvaTotal.toFixed(2)}€)<br>Vérifiez vos saisies !</p>`;
+        } else {
+            html += `<button id="btn-sync" class="btn-primary" style="width:100%; background:var(--success); height:50px; font-size:1.1rem;" onclick="app.sendToGoogleSheet()">💾 ARCHIVER LE SERVICE</button>`;
+        }
+
+        document.getElementById('recap-body').innerHTML = html;
+        document.getElementById('modal-recap').classList.remove('hidden');
+    },
 
     sendToGoogleSheet() {
         const btn = document.getElementById('btn-sync');
@@ -262,7 +251,7 @@ openRecap() {
     resetAllData() {
         this.state = { ancv: [], checks: [], mypos: [] };
         localStorage.removeItem('dolus_v_final');
-        location.reload(); // Moyen le plus sûr de tout réinitialiser proprement
+        location.reload();
     },
 
     closeRecap() { document.getElementById('modal-recap').classList.add('hidden'); },
@@ -282,5 +271,4 @@ openRecap() {
     bindEvents() { document.addEventListener('input', () => this.refreshUI()); }
 };
 
-// Initialisation au chargement
 document.addEventListener('DOMContentLoaded', () => app.init());
