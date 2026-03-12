@@ -22,6 +22,12 @@ const app = {
         const offsetInput = document.getElementById('cash-offset');
         if (offsetInput && !offsetInput.value) offsetInput.value = this.CONFIG.DEFAULT_CASH_OFFSET;
         
+        // --- AUTO-DATE : Règle la date sur AUJOURD'HUI par défaut ---
+        const dateInput = document.getElementById('service-date');
+        if (dateInput && !dateInput.value) {
+            dateInput.value = new Date().toISOString().split('T')[0];
+        }
+        
         this.bindEvents();
         this.refreshUI();
         this.showView('view-pos');
