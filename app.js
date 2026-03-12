@@ -71,7 +71,7 @@ renderCashGrid() {
     `;
 },
 
-    // --- GESTION DES VUES ---
+
         showView(viewId) {
             // Cache toutes les vues
             document.querySelectorAll('.view').forEach(v => {
