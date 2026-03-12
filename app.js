@@ -159,6 +159,10 @@ openRecap() {
     
     const tvaTotal = getIn('tva-5') + getIn('tva-10') + getIn('tva-20');
     const deltaCash = cashCompte - posCashLogiciel;
+    const tva5 = getIn('tva-5');
+    const tva10 = getIn('tva-10');
+    const tva20 = getIn('tva-20');
+    const tvaTotal = tva5 + tva10 + tva20;
 
     // MISE À JOUR DU DATA (On ajoute dateCustom)
     this.currentData = {
@@ -187,7 +191,6 @@ openRecap() {
         <div class="recap-row"><span>Espèces Net : </span><strong>${cashCompte.toFixed(2)} €</strong></div>
         <div class="recap-row"><span>Espèces Addition : </span><strong>${posCashLogiciel.toFixed(2)} €</strong></div>
         <div class="recap-row"><span>CB Total : </span><strong>${totalCB_Amex.toFixed(2)} €</strong></div>
-        <div class="recap-row"><span>CB (Classique+Amex) :</span><strong>${totalCB_Amex.toFixed(2)} €</strong></div>
         <div class="recap-row"><span>CB Ticket Resto : </span><strong>${v('total-tr').toFixed(2)} €</strong></div>
         <div class="recap-row"><span>ANCV Papier : </span><strong>${v('total-ancv-paper').toFixed(2)} €</strong></div>
         <div class="recap-row"><span>ANCV Connect : </span><strong>${v('total-ancv-connect').toFixed(2)} €</strong></div>
@@ -202,7 +205,7 @@ openRecap() {
         <div class="recap-row"><span>TVA 20,0 % : </span><strong>${v('tva20').toFixed(2)} €</strong></div>
     </div>`;
 
-    if (Math.abs(sommePaiementsLogiciel - tvaTotal) >= 0.05) {
+    if (Math.abs(sommePaiementsLogiciel - tvaTotal) >= 0.1) {
         html += `<p style="color:red; text-align:center; font-weight:bold;">❌ Erreur TVA (${tvaTotal.toFixed(2)}€)<br>Vérifiez vos saisies !</p>`;
     } else {
         html += `<button id="btn-sync" class="btn-primary" style="width:100%; background:var(--success); height:50px; font-size:1.1rem;" onclick="app.sendToGoogleSheet()">💾 ARCHIVER LE SERVICE</button>`;
