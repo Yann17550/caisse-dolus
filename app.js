@@ -168,6 +168,7 @@ openRecap() {
     
     const tvaTotal = getIn('tva-5') + getIn('tva-10') + getIn('tva-20');
     const deltaCash = cashCompte - posCashLogiciel;
+    
     const tva5 = getIn('tva-5');
     const tva10 = getIn('tva-10');
     const tva20 = getIn('tva-20');
@@ -183,12 +184,12 @@ openRecap() {
         ancvP: v('total-ancv-paper'), 
         ancvC: v('total-ancv-connect'),
         checks: v('total-checks'), 
-        caTotal: sommePaiementsLogiciel + v('total-mypos'),
+        caTotal: sommePaiementsLogiciel,
         posCash: posCashLogiciel, 
         deltaCash: deltaCash,
-        tva5: getIn('tva-5'), 
-        tva10: getIn('tva-10'), 
-        tva20: getIn('tva-20'),
+        tva5: tva5), 
+        tva10: tva10,
+        tva20: tva20,
         pizzas_e: getIn('pos-pizzas')
     };
 
