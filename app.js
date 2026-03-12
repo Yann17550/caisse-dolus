@@ -24,6 +24,7 @@ const app = {
         
         this.bindEvents();
         this.refreshUI();
+        this.showView('view-pos');
     },
 
     // Génération de la grille avec valeurs par défaut (Vesuvio Style)
@@ -133,45 +134,65 @@ renderCashGrid() {
     },
 
     // --- RÉCAPITULATIF FINAL ---
-    openRecap() {
-        const v = id => parseFloat(document.getElementById(id).textContent) || 0;
-        const getIn = id => parseFloat(document.getElementById(id).value) || 0;
+openRecap() {
+    const v = id => parseFloat(document.getElementById(id).textContent) || 0;
+    const getIn = id => parseFloat(document.getElementById(id).value) || 0;
+    
+    // RÉCUPÉRATION DE LA DATE
+    const dateService = document.getElementById('service-date').value;
+    if(!dateService) {
+        alert("⚠️ ATTENTION : Veuillez sélectionner la date du service !");
+        this.showView('view-pos');
+        return;
+    }
 
-        const totalCB_Amex = v('total-cb') + v('total-amex');
-        const cashCompte = v('total-cash-net');
-        const posCashLogiciel = getIn('pos-cash');
-        const sommePaiementsLogiciel = totalCB_Amex + v('total-tr') + v('total-ancv-paper') + v('total-ancv-connect') + v('total-checks') + posCashLogiciel;
-        
-        const tvaTotal = getIn('tva-5') + getIn('tva-10') + getIn('tva-20');
-        const deltaCash = cashCompte - posCashLogiciel;
+    const totalCB_Amex = v('total-cb') + v('total-amex');
+    const cashCompte = v('total-cash-net');
+    const posCashLogiciel = getIn('pos-cash');
+    const sommePaiementsLogiciel = totalCB_Amex + v('total-tr') + v('total-ancv-paper') + v('total-ancv-connect') + v('total-checks') + posCashLogiciel;
+    
+    const tvaTotal = getIn('tva-5') + getIn('tva-10') + getIn('tva-20');
+    const deltaCash = cashCompte - posCashLogiciel;
 
-        this.currentData = {
-            cb: totalCB_Amex, tr: v('total-tr'), mypos: v('total-mypos'),
-            cashNet: cashCompte, ancvP: v('total-ancv-paper'), ancvC: v('total-ancv-connect'),
-            checks: v('total-checks'), caTotal: sommePaiementsLogiciel + v('total-mypos'),
-            posCashLogiciel: posCashLogiciel, deltaCash: deltaCash,
-            tva5: getIn('tva-5'), tva10: getIn('tva-10'), tva20: getIn('tva-20'),
-            pizzas_e: getIn('pos-pizzas')
-        };
+    // MISE À JOUR DU DATA (On ajoute dateCustom)
+    this.currentData = {
+        dateCustom: dateService, // <-- TRÈS IMPORTANT pour ton AppScript
+        cb: totalCB_Amex, 
+        tr: v('total-tr'), 
+        mypos: v('total-mypos'),
+        cashNet: cashCompte, 
+        ancvP: v('total-ancv-paper'), 
+        ancvC: v('total-ancv-connect'),
+        checks: v('total-checks'), 
+        caTotal: sommePaiementsLogiciel + v('total-mypos'),
+        posCash: posCashLogiciel, // Corrigé ici pour correspondre au script (posCash)
+        deltaCash: deltaCash,
+        tva5: getIn('tva-5'), 
+        tva10: getIn('tva-10'), 
+        tva20: getIn('tva-20'),
+        pizzas_e: getIn('pos-pizzas')
+    };
 
-        let html = `<div class="recap-content">
-            <p><b>POINTAGE RÉEL :</b></p>
-            <div class="recap-row"><span>Espèces Net :</span><strong>${cashCompte.toFixed(2)} €</strong></div>
-            <div class="recap-row"><span>CB Total :</span><strong>${totalCB_Amex.toFixed(2)} €</strong></div>
-            <div class="recap-row" style="background:#fff3cd; padding:5px;"><span>⚠️ Écart Espèces :</span><strong>${deltaCash.toFixed(2)} €</strong></div>
-            <hr>
-            <p><b>LOGICIEL :</b> ${sommePaiementsLogiciel.toFixed(2)} €</p>
-        </div>`;
+    // AFFICHAGE DANS LA MODALE (On montre la date pour vérification)
+    let html = `<div class="recap-content">
+        <p style="text-align:center; background:#eee; padding:5px; border-radius:5px;"><b>📅 SERVICE DU : ${dateService.split('-').reverse().join('/')}</b></p>
+        <p><b>POINTAGE RÉEL :</b></p>
+        <div class="recap-row"><span>Espèces Net :</span><strong>${cashCompte.toFixed(2)} €</strong></div>
+        <div class="recap-row"><span>CB Total :</span><strong>${totalCB_Amex.toFixed(2)} €</strong></div>
+        <div class="recap-row" style="background:#fff3cd; padding:5px;"><span>⚠️ Écart Espèces :</span><strong>${deltaCash.toFixed(2)} €</strong></div>
+        <hr>
+        <p><b>LOGICIEL :</b> ${sommePaiementsLogiciel.toFixed(2)} €</p>
+    </div>`;
 
-        if (Math.abs(sommePaiementsLogiciel - tvaTotal) >= 0.05) {
-            html += `<p style="color:red;">❌ Erreur TVA (${tvaTotal.toFixed(2)}€)</p>`;
-        } else {
-            html += `<button id="btn-sync" class="btn-primary" onclick="app.sendToGoogleSheet()">💾 ARCHIVER</button>`;
-        }
+    if (Math.abs(sommePaiementsLogiciel - tvaTotal) >= 0.05) {
+        html += `<p style="color:red; text-align:center; font-weight:bold;">❌ Erreur TVA (${tvaTotal.toFixed(2)}€)<br>Vérifiez vos saisies !</p>`;
+    } else {
+        html += `<button id="btn-sync" class="btn-primary" style="width:100%; background:var(--success); height:50px; font-size:1.1rem;" onclick="app.sendToGoogleSheet()">💾 ARCHIVER LE SERVICE</button>`;
+    }
 
-        document.getElementById('recap-body').innerHTML = html;
-        document.getElementById('modal-recap').classList.remove('hidden');
-    },
+    document.getElementById('recap-body').innerHTML = html;
+    document.getElementById('modal-recap').classList.remove('hidden');
+},
 
     sendToGoogleSheet() {
         const btn = document.getElementById('btn-sync');
