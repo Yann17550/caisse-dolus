@@ -209,13 +209,27 @@ input, select {
 /* ==========================================================
    📍 BARRE DE NAVIGATION (Menu bas)
    ========================================================== */
-.nav-bar { 
-    position: fixed; 
-    bottom: 0; 
-    width: 100%; 
-    background: var(--primary); 
-    display: flex; 
-    justify-content: space-around; 
-    padding: 10px 0; 
-    z-index: 1000; 
+.nav-bar button {
+    background: transparent;
+    border: none;
+    color: white;
+    font-size: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    opacity: 0.8;
+}
+
+.nav-bar button:active {
+    opacity: 1;
+    transform: scale(0.95);
+}
+
+.btn-recap-nav {
+    background: var(--accent) !important;
+    padding: 5px 10px;
+    border-radius: 8px;
+    font-weight: bold;
+    opacity: 1 !important;
 }
