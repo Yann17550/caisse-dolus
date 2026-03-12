@@ -171,7 +171,7 @@ openRecap() {
         ancvC: v('total-ancv-connect'),
         checks: v('total-checks'), 
         caTotal: sommePaiementsLogiciel + v('total-mypos'),
-        posCash: posCashLogiciel, // Corrigé ici pour correspondre au script (posCash)
+        posCash: posCashLogiciel, 
         deltaCash: deltaCash,
         tva5: getIn('tva-5'), 
         tva10: getIn('tva-10'), 
@@ -182,12 +182,24 @@ openRecap() {
     // AFFICHAGE DANS LA MODALE (On montre la date pour vérification)
     let html = `<div class="recap-content">
         <p style="text-align:center; background:#eee; padding:5px; border-radius:5px;"><b>📅 SERVICE DU : ${dateService.split('-').reverse().join('/')}</b></p>
+        
         <p><b>POINTAGE RÉEL :</b></p>
-        <div class="recap-row"><span>Espèces Net :</span><strong>${cashCompte.toFixed(2)} €</strong></div>
-        <div class="recap-row"><span>CB Total :</span><strong>${totalCB_Amex.toFixed(2)} €</strong></div>
-        <div class="recap-row" style="background:#fff3cd; padding:5px;"><span>⚠️ Écart Espèces :</span><strong>${deltaCash.toFixed(2)} €</strong></div>
+        <div class="recap-row"><span>Espèces Net : </span><strong>${cashCompte.toFixed(2)} €</strong></div>
+        <div class="recap-row"><span>Espèces Addition : </span><strong>${posCashLogiciel.toFixed(2)} €</strong></div>
+        <div class="recap-row"><span>CB Total : </span><strong>${totalCB_Amex.toFixed(2)} €</strong></div>
+        <div class="recap-row"><span>CB (Classique+Amex) :</span><strong>${totalCB_Amex.toFixed(2)} €</strong></div>
+        <div class="recap-row"><span>CB Ticket Resto : </span><strong>${v('total-tr').toFixed(2)} €</strong></div>
+        <div class="recap-row"><span>ANCV Papier : </span><strong>${v('total-ancv-paper').toFixed(2)} €</strong></div>
+        <div class="recap-row"><span>ANCV Connect : </span><strong>${v('total-ancv-connect').toFixed(2)} €</strong></div>
+        <div class="recap-row"><span>Chèques : </span><strong>${v('total-checks').toFixed(2)} €</strong></div>
+        <hr>
+        <div class="recap-row" style="background:#fff3cd; padding:5px;"><span>⚠️ Écart Espèces : </span><strong>${deltaCash.toFixed(2)} €</strong></div>
+        <div class="recap-row"><span>MyPos : </span><strong>${v('total-mypos').toFixed(2)} €</strong></div>
         <hr>
         <p><b>LOGICIEL :</b> ${sommePaiementsLogiciel.toFixed(2)} €</p>
+        <div class="recap-row"><span>TVA  5,5 % : </span><strong>${v('tva5').toFixed(2)} €</strong></div>
+        <div class="recap-row"><span>TVA 10,0 % : </span><strong>${v('tva10').toFixed(2)} €</strong></div>
+        <div class="recap-row"><span>TVA 20,0 % : </span><strong>${v('tva20').toFixed(2)} €</strong></div>
     </div>`;
 
     if (Math.abs(sommePaiementsLogiciel - tvaTotal) >= 0.05) {
