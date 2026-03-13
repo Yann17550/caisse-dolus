@@ -21,4 +21,15 @@ async function loadEnv() {
         console.error('Erreur chargement .env:', error);
         // Fallback avec ton lien actuel
         window.ENV = { 
-            SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbz7Xvhqd98MGNXI0kUzrNNYJpV7RmDPs18
+            SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbz7Xvhqd98MGNXI0kUzrNNYJpV7RmDPs18'
+    } catch (error) {
+        console.error('Erreur chargement .env:', error);
+        // Fallback avec ton lien actuel
+        window.ENV = { 
+            SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbz7Xvhqd98MGNXI0kUzrNNYJpV7RmDPs18brYPJsmg1t4-Hww3XrUzk79mcg6jQdbP6EA/exec'
+        };
+    }
+}
+
+// Lancer au démarrage
+loadEnv();
