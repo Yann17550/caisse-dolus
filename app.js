@@ -408,12 +408,54 @@ const app = {
      * Sauvegarde dans localStorage (service en cours + pending)
      */
     saveToStorage() {
-        // Données du service en cours (non encore envoyé)
         const data = {
             state: this.state,
             cash_vals: Array.from(document.querySelectorAll('.cash-in')).map(i => i.value || 0),
-            dateCustom: document.getElementById('service-date')?.value,
-            posCash: document.getElementById('pos-cash')?.value,
-            tva: {
-                tva5: document.getElementById('tva-5')?.value,
-                tva10: document.getElementById('tva
+            dateCustom: document.getElementById('service-date')?.value || null,
+            posCash: document.getElementById('pos-cash')?.value || 0,
+            tva5: document.getElementById('tva-5')?.value || 0,
+            tva10: document.getElementById('tva-10')?.value || 0,
+            tva20: document.getElementById('tva-20')?.value || 0,
+            pizzas_e: document.getElementById('pos-pizzas')?.value || 0,
+            timestamp: Date.now()
+        };
+
+        // Mettre à jour le service en cours dans localStorage
+        let pending = JSON.parse(localStorage.getItem('dolus_pending_services')) || [];
+        const existingIndex = pending.findIndex(s => s.timestamp === data.timestamp);
+        if (existingIndex >= 0) {
+            pending[existingIndex] = data;
+        } else {
+            pending.push(data);
+        }
+        localStorage.setItem('dolus_pending_services', JSON.stringify(pending));
+    },
+
+    loadFromStorage() {
+        let pending = JSON.parse(localStorage.getItem('dolus_pending_services')) || [];
+
+        // Charger le dernier service non envoyé (le plus récent)
+        if (pending.length > 0) {
+            const latest = pending.sort((a, b) => b.timestamp - a.timestamp)[0];
+
+            this.state = latest.state || this.state;
+            if (latest.cash_vals) {
+                document.querySelectorAll('.cash-in').forEach((el, i) => {
+                    if (latest.cash_vals[i]) el.value = latest.cash_vals[i];
+                });
+            }
+            if (latest.dateCustom) document.getElementById('service-date').value = latest.dateCustom;
+            if (latest.posCash) document.getElementById('pos-cash').value = latest.posCash;
+            if (latest.tva5) document.getElementById('tva-5').value = latest.tva5;
+            if (latest.tva10) document.getElementById('tva-10').value = latest.tva10;
+            if (latest.tva20) document.getElementById('tva-20').value = latest.tva20;
+            if (latest.pizzas_e) document.getElementById('pos-pizzas').value = latest.pizzas_e;
+        }
+    },
+
+    bindEvents() {
+        document.addEventListener('input', () => this.refreshUI());
+    }
+};
+
+document.addEventListener('DOMContentLoaded', () => app.init());
