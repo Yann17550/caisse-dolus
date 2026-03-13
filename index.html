@@ -10,33 +10,35 @@
 <body>
 <div class="app-container">
 <section id="view-pos" class="view hidden">
-<header><h1>📊 Logiciel & TVA</h1></header>
-  <input type="date" id="service-date">
-<main>
-<div class="card-section date-impactante">
-  <label>📅 DATE DU SERVICE À TRAITER</label>
-</div>
+    <header><h1>📊 Logiciel & TVA</h1></header>
+    <main>
+        <div class="card-section date-impactante">
+            <label>📅 DATE DU SERVICE À TRAITER</label>
+            <input type="date" id="service-date">
+            <p class="date-warning">⚠️ Vérifiez bien la date avant de valider</p>
+        </div>
 
-<div class="card-section">
-<h2>Données de la caisse</h2>
-<div class="input-group">
-<label>Total Espèces (Logiciel)</label>
-<input type="number" id="pos-cash" step="0.01" inputmode="decimal">
-</div>
-<div class="input-group">
-<label>Pizzas confectionnées</label>
-<input type="number" id="pos-pizzas" inputmode="numeric">
-</div>
-</div>
+        <div class="card-section">
+            <h2>Données du logiciel</h2>
+            <div class="input-group">
+                <label>Total Espèces (Logiciel)</label>
+                <input type="number" id="pos-cash" step="0.01" inputmode="decimal">
+            </div>
+            <div class="input-group">
+                <label>Pizzas confectionnées</label>
+                <input type="number" id="pos-pizzas" inputmode="numeric">
+            </div>
+        </div>
 
-<div class="card-section">
-<h2>TVA (TTC)</h2>
-<div class="input-group"><label>TTC 5.5%</label><input type="number" id="tva-5" step="0.01" inputmode="decimal"></div>
-<div class="input-group"><label>TTC 10%</label><input type="number" id="tva-10" step="0.01" inputmode="decimal"></div>
-<div class="input-group"><label>TTC 20%</label><input type="number" id="tva-20" step="0.01" inputmode="decimal"></div>
-</div>
-</main>
+        <div class="card-section">
+            <h2>TVA (TTC)</h2>
+            <div class="input-group"><label>TTC 5.5%</label><input type="number" id="tva-5" step="0.01" inputmode="decimal"></div>
+            <div class="input-group"><label>TTC 10%</label><input type="number" id="tva-10" step="0.01" inputmode="decimal"></div>
+            <div class="input-group"><label>TTC 20%</label><input type="number" id="tva-20" step="0.01" inputmode="decimal"></div>
+        </div>
+    </main>
 </section>
+  
 <section id="view-cards" class="view">
 <header><h1>💳 Cartes Bancaires</h1></header>
 <main>
