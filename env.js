@@ -1,4 +1,3 @@
-// env.js - Charge les variables depuis .env (pour repo privé)
 async function loadEnv() {
     try {
         const response = await fetch('./.env');
@@ -19,6 +18,9 @@ async function loadEnv() {
         window.ENV = env;
     } catch (error) {
         console.error('Erreur chargement .env:', error);
-        // Fallback avec ton lien actuel
-        window.ENV = { 
-            SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbz7Xvhqd98MGNXI0kUzrNNYJpV7RmDPs18
+        window.ENV = { SCRIPT_URL: '' };
+    }
+}
+
+// Charge env au démarrage
+loadEnv();
