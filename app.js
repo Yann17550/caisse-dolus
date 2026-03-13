@@ -13,7 +13,7 @@ const app = {
     },
 
     CONFIG: {
-        SCRIPT_URL: window.ENV?.SCRIPT_URL || '',
+        SCRIPT_URL: "https://script.google.com/macros/s/AKfycbz7Xvhqd98MGNXI0kUzrNNYJpV7RmDPs18brYPJsmg1t4-Hww3XrUzk79mcg6jQdbP6EA/exec",
 
         DEFAULT_CASH_OFFSET: 134.00,
         IDEAL_CASH: {
