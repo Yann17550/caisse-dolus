@@ -271,5 +271,7 @@ if (s.cash_vals) document.querySelectorAll('.cash-in').forEach((el, i) => { if(s
 
 bindEvents() { document.addEventListener('input', () => this.refreshUI()); }
 };
+closeRecap() {
+    document.getElementById('modal-recap').classList
 
 document.addEventListener('DOMContentLoaded', () => app.init());
