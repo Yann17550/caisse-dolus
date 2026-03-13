@@ -151,17 +151,24 @@ const app = {
     },
 
     // --- RÉCAPITULATIF FINAL ---
+   // --- RÉCAPITULATIF FINAL ---
     openRecap() {
-        const v = id => parseFloat(document.getElementById(id).textContent) || 0;
-        const getIn = id => parseFloat(document.getElementById(id).value) || 0;
+        const v = id => {
+            const el = document.getElementById(id);
+            return el ? (parseFloat(el.textContent) || 0) : 0;
+        };
+        const getIn = id => {
+            const el = document.getElementById(id);
+            return el ? (parseFloat(el.value) || 0) : 0;
+        };
+        
         const dateService = document.getElementById('service-date').value;
-    
         if(!dateService) { alert("⚠️ Date manquante"); return; }
     
-        // 1. On lance les calculs via le fichier spécial
-        const calc = LogicRecap.calculate(this.state, getIn, v);
+        // 1. Appel de la logique avec les bonnes fonctions de capture
+        const calc = LogicRecap.calculate(getIn, v);
     
-        // 2. On prépare les données pour l'envoi Google Sheet
+        // 2. Préparation des données pour Google Sheet (Mapping propre)
         this.currentData = {
             dateCustom: dateService,
             cb: calc.details.cbTotal,
@@ -180,10 +187,13 @@ const app = {
             pizzas_e: getIn('pos-pizzas')
         };
     
-        // 3. On affiche via le fichier UI
-        document.getElementById('recap-body').innerHTML = RecapUI.render(calc, dateService);
+        // 3. Affichage
+        const container = document.getElementById('recap-body');
+        if(container) {
+            container.innerHTML = RecapUI.render(calc, dateService);
+        }
         document.getElementById('modal-recap').classList.remove('hidden');
-    }
+    },
     sendToGoogleSheet() {
         const btn = document.getElementById('btn-sync');
         btn.disabled = true; btn.textContent = "🚀 Envoi...";
