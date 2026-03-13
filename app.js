@@ -154,66 +154,36 @@ const app = {
     openRecap() {
         const v = id => parseFloat(document.getElementById(id).textContent) || 0;
         const getIn = id => parseFloat(document.getElementById(id).value) || 0;
-        
         const dateService = document.getElementById('service-date').value;
-        if(!dateService) {
-            alert("⚠️ ATTENTION : Veuillez sélectionner la date du service !");
-            this.showView('view-pos');
-            return;
-        }
-
-        const totalCB_Amex = v('total-cb') + v('total-amex');
-        const cashCompte = v('total-cash-net');
-        const posCashLogiciel = getIn('pos-cash');
-        const sommePaiementsLogiciel = totalCB_Amex + v('total-tr') + v('total-ancv-paper') + v('total-ancv-connect') + v('total-checks') + posCashLogiciel;
-        
-        const tva5 = getIn('tva-5');
-        const tva10 = getIn('tva-10');
-        const tva20 = getIn('tva-20');
-        const tvaTotal = tva5 + tva10 + tva20; // Corrigé : suppression de la double déclaration "const"
-
-        const deltaCash = cashCompte - posCashLogiciel;
-
+    
+        if(!dateService) { alert("⚠️ Date manquante"); return; }
+    
+        // 1. On lance les calculs via le fichier spécial
+        const calc = LogicRecap.calculate(this.state, getIn, v);
+    
+        // 2. On prépare les données pour l'envoi Google Sheet
         this.currentData = {
             dateCustom: dateService,
-            cb: totalCB_Amex, 
-            tr: v('total-tr'), 
-            mypos: v('total-mypos'),
-            cashNet: cashCompte, 
-            ancvP: v('total-ancv-paper'), 
-            ancvC: v('total-ancv-connect'),
-            checks: v('total-checks'), 
-            caTotal: sommePaiementsLogiciel,
-            posCash: posCashLogiciel, 
-            deltaCash: deltaCash,
-            tva5: tva5, 
-            tva10: tva10, 
-            tva20: tva20,
+            cb: calc.details.cbTotal,
+            tr: calc.details.cbTR,
+            mypos: calc.details.mypos,
+            cashNet: calc.details.especesReel,
+            ancvP: calc.details.ancvPapier,
+            ancvC: calc.details.ancvConnect,
+            checks: calc.details.checks,
+            caTotal: calc.sommeGlobaleLogiciel,
+            posCash: calc.details.especesLogiciel,
+            deltaCash: calc.details.deltaEspeces,
+            tva5: calc.details.tva5,
+            tva10: calc.details.tva10,
+            tva20: calc.details.tva20,
             pizzas_e: getIn('pos-pizzas')
         };
-
-        let html = `<div class="recap-content">
-            <p style="text-align:center; background:#eee; padding:5px; border-radius:5px;"><b>📅 SERVICE DU : ${dateService.split('-').reverse().join('/')}</b></p>
-            <p><b>POINTAGE RÉEL :</b></p>
-            <div class="recap-row"><span>Espèces Net : </span><strong>${cashCompte.toFixed(2)} €</strong></div>
-            <div class="recap-row"><span>CB Total : </span><strong>${totalCB_Amex.toFixed(2)} €</strong></div>
-            <div class="recap-row"><span>ANCV : </span><strong>${(v('total-ancv-paper') + v('total-ancv-connect')).toFixed(2)} €</strong></div>
-            <hr>
-            <div class="recap-row" style="background:#fff3cd; padding:5px;"><span>⚠️ Écart Espèces : </span><strong>${deltaCash.toFixed(2)} €</strong></div>
-            <hr>
-            <p><b>LOGICIEL :</b> ${sommePaiementsLogiciel.toFixed(2)} €</p>
-        </div>`;
-
-        if (Math.abs(sommePaiementsLogiciel - tvaTotal) >= 0.1) {
-            html += `<p style="color:red; text-align:center; font-weight:bold;">❌ Erreur TVA (${tvaTotal.toFixed(2)}€)<br>Vérifiez vos saisies !</p>`;
-        } else {
-            html += `<button id="btn-sync" class="btn-primary" style="width:100%; background:var(--success); height:50px; font-size:1.1rem;" onclick="app.sendToGoogleSheet()">💾 ARCHIVER LE SERVICE</button>`;
-        }
-
-        document.getElementById('recap-body').innerHTML = html;
+    
+        // 3. On affiche via le fichier UI
+        document.getElementById('recap-body').innerHTML = RecapUI.render(calc, dateService);
         document.getElementById('modal-recap').classList.remove('hidden');
-    },
-
+    }
     sendToGoogleSheet() {
         const btn = document.getElementById('btn-sync');
         btn.disabled = true; btn.textContent = "🚀 Envoi...";
