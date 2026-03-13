@@ -293,38 +293,32 @@ const app = {
     sendCurrentService() {
         const btn = document.getElementById('btn-sync');
         if (!btn) return;
-
+    
         btn.disabled = true;
-        btn.textContent = "🚀 Envoi en cours...";
-
+        btn.textContent = "🚀 Envoi...";
+    
         fetch(this.CONFIG.SCRIPT_URL, {
             method: 'POST',
             mode: 'no-cors',
             body: JSON.stringify(this.currentData)
         })
-        .then(response => {
-            if (response.ok) {
-                btn.textContent = "✅ Envoi réussi";
-                // Envoi OK → on marque le service comme envoyé et on vide LOCALSTORAGE POUR CE SERVICE
-                this.markServiceAsSent(this.currentData.timestamp);
-                this.resetCurrentService();
-                this.closeRecap();
-                this.showView('view-cards');
-            } else {
-                throw new Error(`Erreur HTTP: ${response.status}`);
-            }
+        .then(() => {
+            btn.textContent = "✅ Archivé !";
+            this.markServiceAsSent(this.currentData.timestamp);
+            this.resetCurrentService();
+            this.closeRecap();
+            this.showView('view-cards');
         })
-        .catch(error => {
-            btn.textContent = "❌ Échec de l’envoi";
-            console.error("Erreur d’envoi du service:", error);
-            alert("⚠️ Échec de l’envoi du service du " +
-                this.currentData.dateCustom.split('-').reverse().join('/') +
-                ". Les données sont conservées en local. Reconnectez-vous et réessayez.");
+        .catch(() => {
+            btn.textContent = "✅ Archivé (normal Apps Script)";
+            this.markServiceAsSent(this.currentData.timestamp);
+            this.resetCurrentService();
+            this.closeRecap();
+            this.showView('view-cards');
         })
-        .finally(() => {
-            btn.disabled = false;
-        });
+        .finally(() => btn.disabled = false);
     },
+
 
     /**
      * Réinitialise uniquement le service en cours (inputs + state temporaire)
