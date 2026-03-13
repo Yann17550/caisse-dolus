@@ -191,6 +191,7 @@ tva10: tva10,
 tva20: tva20,
 pizzas_e: getIn('pos-pizzas')
 };
+console.log("DEBUG date envoyée:", dateService, "format:", this.currentData.dateCustom);
 
 let html = `<div class="recap-content">
 <p style="text-align:center; background:#eee; padding:5px; border-radius:5px;"><b>📅 SERVICE DU : ${dateService.split('-').reverse().join('/')}</b></p>
