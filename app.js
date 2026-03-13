@@ -299,6 +299,7 @@ const app = {
 
         fetch(this.CONFIG.SCRIPT_URL, {
             method: 'POST',
+            mode: 'no-cors',
             body: JSON.stringify(this.currentData)
         })
         .then(response => {
