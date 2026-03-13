@@ -1,8 +1,6 @@
 /**
  * COMPOSANT : RecapUI
- * Gère uniquement la mise en forme HTML
  */
-
 const RecapUI = {
     render(calc, dateService) {
         const d = calc.details;
