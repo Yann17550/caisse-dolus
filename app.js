@@ -197,7 +197,7 @@ const app = {
         const btn = document.getElementById('btn-sync');
         btn.disabled = true; btn.textContent = "🚀 Envoi...";
         const instructions = this.calculateCashShortage();
-
+    
         fetch(this.CONFIG.SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(this.currentData) })
         .then(() => {
             btn.textContent = "✅ FAIT";
@@ -205,10 +205,14 @@ const app = {
                 this.closeRecap();
                 this.resetAllData();
                 this.showShortageModal(instructions);
+                if (typeof FondCaisseModule !== 'undefined') {
+                    FondCaisseModule.showFinalGuide();
+                }
                 this.showView('view-cards');
             }, 800);
         });
     },
+
 
     calculateCashShortage() {
         let h = "";
@@ -230,7 +234,7 @@ const app = {
     resetAllData() {
         this.state = { ancv: [], checks: [], mypos: [] };
         localStorage.removeItem('dolus_v_final');
-        location.reload();
+        // location.reload();
     },
 
     closeRecap() { document.getElementById('modal-recap').classList.add('hidden'); },
