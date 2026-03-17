@@ -150,7 +150,6 @@ const app = {
         document.getElementById('checks-recap').innerHTML = this.state.checks.map((amt, i) => `<div class="recap-item"><span>Chèque #${i+1}</span><strong>${amt.toFixed(2)}€</strong><button onclick="app.removeCheck(${i})">❌</button></div>`).join('');
     },
 
-    // --- RÉCAPITULATIF FINAL ---
    // --- RÉCAPITULATIF FINAL ---
     openRecap() {
         const v = id => {
