@@ -257,4 +257,7 @@ const app = {
   },
   bindEvents() { 
     document.addEventListener('input', ()
-  }
+    }
+  };
+  
+  document.addEventListener('DOMContentLoaded', () => app.init());
