@@ -257,3 +257,4 @@ const app = {
   },
   bindEvents() { 
     document.addEventListener('input', ()
+  }
