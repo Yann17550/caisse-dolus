@@ -40,7 +40,7 @@ const app = {
       let def = this.CONFIG.IDEAL_CASH[u] || "";
       return `
       <div class="cash-item">
-        abel>${u}€</label>
+        <label>${u}€</label>
         <input type="number" 
           class="cash-in" 
           data-unit="${u}" 
