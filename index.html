@@ -101,30 +101,27 @@
 </section>
 
 <section id="view-ancv" class="view hidden">
-<header><h1>🏖️ ANCV</h1></header>
-<main>
-<div class="card-section">
-<div class="dual-total">
-<div class="total-box"><span>Papier</span><strong id="total-ancv-paper">0.00</strong>€</div>
-</div>
-
-<label>Valeur (€)</label>
-    <select id="ancv-val">
-        <option value="10">10 €</option>
-        <option value="25">25 €</option>
-        <option value="50">50 €</option>
-    </select>
-<label>Nombre</label>
-    <input type="number" id="ancv-qty" inputmode="numeric" placeholder="0">
-<div class="btn-row">
-    
-<button class="btn-primary" onclick="app.addAncv()">Valider</button>
-<button class="btn-danger" onclick="app.resetAncvInputs()">RAZ</button>
-</div>
-</div>
-</div>
-<div class="recap-list" id="ancv-recap"></div>
-</main>
+    <header><h1>🏖️ ANCV Papier</h1></header>
+    <main>
+        <div class="card-section">
+            <div class="dual-total">
+                <div class="total-box"><span>Total : </span><strong id="total-ancv-paper">0.00</strong>€</div>
+            </div>
+            <label>Valeur (€)</label>
+            <select id="ancv-val">
+                <option value="10">10 €</option>
+                <option value="25">25 €</option>
+                <option value="50">50 €</option>
+            </select>
+            <label>Nombre</label>
+            <input type="number" id="ancv-qty" inputmode="numeric" placeholder="0">
+            <div class="btn-row">    
+                <button class="btn-primary" onclick="app.addAncv()">Valider</button>
+                <button class="btn-danger" onclick="app.resetAncvInputs()">RAZ</button>
+            </div>
+        </div>
+        <div class="recap-list" id="ancv-recap"></div>
+    </main>
 </section>
 
 <section id="view-checks" class="view hidden">
