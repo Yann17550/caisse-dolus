@@ -30,7 +30,7 @@ const app = {
         
         this.bindEvents();
         this.refreshUI();
-        this.showView('view-pos');
+        this.showView('view-cards');
     },
 
     // Génération de la grille avec valeurs par défaut (Vesuvio Style)
