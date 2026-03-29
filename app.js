@@ -255,9 +255,10 @@ const app = {
     this.state = s.state || this.state;
     if (s.cash_vals) document.querySelectorAll('.cash-in').forEach((el, i) => { if(s.cash_vals[i]) el.value = s.cash_vals[i]; });
   },
-  bindEvents() { 
-    document.addEventListener('input', ()
-    }
-  };
   
-  document.addEventListener('DOMContentLoaded', () => app.init());
+  bindEvents() { 
+    document.addEventListener('input', () => this.refreshUI()); 
+  }
+};
+
+document.addEventListener('DOMContentLoaded', () => app.init());
