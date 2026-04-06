@@ -1,5 +1,5 @@
 /**
- * LOGIQUE DE CALCUL - Pizza Oléron
+ * LOGIQUE DE CALCUL - Pizza Oléron 
  */
 const LogicRecap = {
     calculate(getIn, getV) {
